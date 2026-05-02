@@ -79,19 +79,28 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return jsonError("Server not configured", 500);
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !serviceKey || !anonKey) return jsonError("Server not configured", 500);
 
   // ---- Auth ----
   const authHeader = req.headers.get("authorization") ?? "";
   const token = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7) : "";
   if (!token) return jsonError("Missing authorization header", 401);
 
+  // Service-role client: used to peek at auth.identities for the Apple revoke step.
   const supabase = createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   const { data: userRes, error: userErr } = await supabase.auth.getUser(token);
   if (userErr || !userRes?.user) return jsonError("Invalid or expired token", 401);
   const userId = userRes.user.id;
+
+  // User-scoped client: used to call the SQL RPC so auth.uid() resolves
+  // correctly inside the function. Forward the caller's Bearer token.
+  const userClient = createClient(supabaseUrl, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
 
   // ---- If user has an Apple identity, revoke their authorization with Apple ----
   // Supabase stores OAuth identities in auth.identities. We look for one with
@@ -131,8 +140,22 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // ---- Now run the SQL purge (cards, profile, storage, auth row) ----
-  const { error: rpcErr } = await supabase.rpc("delete_user_account");
+  // ---- Storage cleanup: remove all objects under card-images/{userId}/... ----
+  // Direct DELETE on storage.objects is blocked; use the Storage API instead.
+  try {
+    const { data: objects } = await supabase.storage.from("card-images").list(userId);
+    if (objects && objects.length > 0) {
+      const paths = objects.map((o) => `${userId}/${o.name}`);
+      await supabase.storage.from("card-images").remove(paths);
+    }
+  } catch {
+    // Non-fatal: if storage cleanup fails, the auth row + DB rows still go.
+    // Orphan files left behind are harmless and can be cleaned up by a job.
+  }
+
+  // ---- Now run the SQL purge (cards, profile, auth row) ----
+  // Use the user-scoped client so auth.uid() inside the RPC sees the caller.
+  const { error: rpcErr } = await userClient.rpc("delete_user_account");
   if (rpcErr) return jsonError(`Account deletion failed: ${rpcErr.message}`, 500);
 
   return new Response(JSON.stringify({ ok: true }), {
