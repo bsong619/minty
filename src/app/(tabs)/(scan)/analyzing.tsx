@@ -58,7 +58,7 @@ export default function AnalyzingScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const router = useRouter();
-  const { userId } = useAuth();
+  const { userId, loading: authLoading } = useAuth();
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const scanLineAnim = useRef(new Animated.Value(0)).current;
@@ -84,42 +84,36 @@ export default function AnalyzingScreen() {
   }, []);
 
   useEffect(() => {
-    console.log("[Analyzing] imageUri:", imageUri ? imageUri.slice(0, 60) : "(empty)");
     if (!imageUri) {
       setErrorMsg("No image selected — please go back and pick a photo.");
       return;
     }
+    // Wait for auth to finish resolving on cold start — otherwise we'd save
+    // locally when it should have gone to Supabase, and the grade endpoint
+    // would reject the request because there's no JWT yet.
+    if (authLoading) return;
     setErrorMsg(null);
+    let cancelled = false;
     (async () => {
       try {
-        console.log("[Analyzing] userId:", userId ?? "(guest)", "attempt:", retryCount);
-        console.log("[Analyzing] calling analyzeCard...");
         const result = await analyzeCard(imageUri, backImageUri ?? undefined);
-        console.log("[Analyzing] analyzeCard done, grade:", result.overallGrade);
+        if (cancelled) return;
         let cardId: string;
         if (userId) {
-          console.log("[Analyzing] saving to Supabase...");
           const saved = await saveCompleteScan({ userId, frontImageUri: imageUri, backImageUri: backImageUri ?? undefined, aiResult: result });
           cardId = saved.id;
           setPendingResultImages(imageUri);
-          console.log("[Analyzing] saved cardId:", cardId);
-          console.log("[Analyzing] navigating to results...");
-          router.replace({ pathname: "/(tabs)/(scan)/results", params: { cardId } });
-          return;
         } else {
-          console.log("[Analyzing] guest path, persisting image...");
           const persistedUri = await persistImageLocally(imageUri);
           const card: GradedCard = { id: Date.now().toString(), imageUri: persistedUri, result, timestamp: Date.now(), favorite: false };
           await saveCard(card);
           cardId = card.id;
           setPendingResultImages(persistedUri);
-          console.log("[Analyzing] guest saved cardId:", cardId);
         }
-        console.log("[Analyzing] navigating to results...");
-        router.replace({ pathname: "/(tabs)/(scan)/results", params: { cardId } });
+        if (!cancelled) router.replace({ pathname: "/(tabs)/(scan)/results", params: { cardId } });
       } catch (err: any) {
+        if (cancelled) return;
         const msg = String(err?.message ?? err);
-        console.error("[Analyzing] ERROR:", msg);
         if (msg.includes("Network request failed") || msg.includes("fetch")) {
           setErrorMsg("No internet connection. Please check your network and try again.");
         } else {
@@ -127,7 +121,8 @@ export default function AnalyzingScreen() {
         }
       }
     })();
-  }, [imageUri, retryCount]);
+    return () => { cancelled = true; };
+  }, [imageUri, retryCount, userId, authLoading, backImageUri, router]);
 
   const spin = rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 

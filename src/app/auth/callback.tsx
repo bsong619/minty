@@ -10,8 +10,12 @@ export default function AuthCallbackScreen() {
 
   useEffect(() => {
     async function handleCallback() {
-      if (params.code) {
-        await supabase.auth.exchangeCodeForSession(params.code);
+      if (params.code && supabase) {
+        try {
+          await supabase.auth.exchangeCodeForSession(params.code);
+        } catch {
+          // exchange failed — fall through to scan; AuthGate will redirect to login if no session
+        }
       }
       router.replace("/(tabs)/(scan)" as any);
     }

@@ -2,7 +2,6 @@ import { Pressable, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { C, SHADOW } from "@/lib/theme";
 
-// Pokemon-themed emoji icons by key
 const ICONS: Record<string, string> = {
   "camera.fill": "📸",
   "photo.on.rectangle": "🖼️",

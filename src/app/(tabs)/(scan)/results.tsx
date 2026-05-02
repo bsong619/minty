@@ -1,19 +1,26 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Image } from "expo-image";  // still used for card image display
-import GradeBadge from "@/components/grade-badge";
-import SubGradeBar from "@/components/sub-grade-bar";
-import { getGradeColor, getConfidenceColor } from "@/lib/grade-colors";
+import { Image } from "expo-image";
+import { getGradeColor } from "@/lib/grade-colors";
 import { getCards, toggleFavorite as localToggleFavorite } from "@/lib/storage";
 import { getScannedCardById, toggleFavorite as sbToggleFavorite } from "@/lib/card-service";
 import { useAuth } from "@/components/auth-provider";
 import { GradedCard } from "@/lib/types";
-import { C, SHADOW } from "@/lib/theme";
+import { CardArt, artKindFor } from "@/components/card-art";
+import { HoloFoil } from "@/components/holo-foil";
+import { Icon } from "@/components/icon";
+import { C, FONT, SHADOW } from "@/lib/theme";
 import { consumePendingResultImages } from "@/lib/pending-result";
 
-const GRADE_LABELS: Record<number, string> = { 10: "Gem Mint ✨", 9: "Mint", 8: "Near Mint-Mint", 7: "Near Mint", 6: "Excellent-Mint", 5: "Excellent", 4: "Very Good-Excellent", 3: "Very Good", 2: "Good", 1: "Poor" };
+const TIER_LABEL: Record<string, string> = {
+  "Lock 10": "Gem Mint",
+  "Strong 10 candidate": "Mint+",
+  "Coin-flip 9/10": "Mint",
+  "Likely 9": "Near Mint",
+  "Below 9": "Below 9",
+};
 
 export default function ResultsScreen() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
@@ -21,32 +28,39 @@ export default function ResultsScreen() {
   const { userId } = useAuth();
   const [card, setCard] = useState<GradedCard | null>(null);
   const [loadError, setLoadError] = useState(false);
-  const [{ imageUri: localImageUri, tcgImageUrl: navTcgImageUrl }] = useState(() => consumePendingResultImages());
+  const [{ imageUri: localImageUri }] = useState(() => consumePendingResultImages());
 
   useEffect(() => {
     setLoadError(false);
+    const isFreshScan = !!localImageUri;
+    const onLoaded = (c: GradedCard | null) => {
+      if (c) {
+        setCard(c);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Trigger pack reveal for Gem-tier hits — only on fresh scans, not when
+        // re-opening a saved Gem from the vault.
+        if (isFreshScan && c.result.overallGrade >= 9.5) {
+          router.push({ pathname: "/reveal", params: { cardId: c.id } } as any);
+        }
+      } else {
+        setLoadError(true);
+      }
+    };
     if (userId) {
-      getScannedCardById(cardId).then((c) => {
-        if (c) { setCard(c); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); }
-        else setLoadError(true);
-      }).catch(() => setLoadError(true));
+      getScannedCardById(cardId).then(onLoaded).catch(() => setLoadError(true));
     } else {
-      getCards().then((cards) => {
-        const found = cards.find((c) => c.id === cardId);
-        if (found) { setCard(found); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); }
-        else setLoadError(true);
-      }).catch(() => setLoadError(true));
+      getCards().then((cards) => onLoaded(cards.find((c) => c.id === cardId) ?? null)).catch(() => setLoadError(true));
     }
-  }, [cardId, userId]);
+  }, [cardId, userId, router]);
 
   if (loadError) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", padding: 32, gap: 16 }}>
-        <Text style={{ fontSize: 32 }}>⚠️</Text>
-        <Text style={{ fontSize: 17, fontWeight: "700", color: C.text, textAlign: "center" }}>Couldn't load results</Text>
-        <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: "center" }}>The scan completed but we couldn't retrieve the data. Please try scanning again.</Text>
-        <Pressable onPress={() => router.back()} style={{ marginTop: 8, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, backgroundColor: C.red }}>
-          <Text style={{ color: "white", fontWeight: "600" }}>Go Back</Text>
+        <Icon name="info" size={32} color={C.danger} />
+        <Text style={{ fontSize: 17, fontFamily: FONT.uiBold, color: C.text, textAlign: "center" }}>Couldn&apos;t load results</Text>
+        <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: "center" }}>The scan completed but we couldn&apos;t retrieve the data. Try scanning again.</Text>
+        <Pressable onPress={() => router.back()} style={{ marginTop: 8, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, backgroundColor: C.mint }}>
+          <Text style={{ color: C.onMint, fontFamily: FONT.uiBold }}>Go Back</Text>
         </Pressable>
       </View>
     );
@@ -61,114 +75,164 @@ export default function ResultsScreen() {
   }
 
   const { result } = card;
-  const gradeColor = getGradeColor(result.overallGrade);
-  const confidenceColor = getConfidenceColor(result.confidence);
-  const gradeLabel = GRADE_LABELS[result.overallGrade] ?? "Unknown";
+  const grade = result.overallGrade;
+  const gradeColor = getGradeColor(grade);
+  const tierName = TIER_LABEL[result.bucket] ?? "Mint";
+  const heroUri = localImageUri || card.imageUri || undefined;
+  const reportNum = card.id.slice(0, 5).toUpperCase();
+  const confPct = result.psa10Likelihood != null
+    ? Math.round(result.psa10Likelihood * 100)
+    : result.confidence === "High" ? 90 : result.confidence === "Medium" ? 65 : 40;
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 40 }}
+      contentContainerStyle={{ paddingBottom: 40 }}
+      showsVerticalScrollIndicator={false}
     >
-      {/* Card + Grade Hero */}
-      <View style={{ alignItems: "center", gap: 16, paddingVertical: 8 }}>
-        <View style={{ borderRadius: 16, borderCurve: "continuous", overflow: "hidden", boxShadow: SHADOW.hero }}>
-          <Image source={{ uri: localImageUri || card.imageUri || undefined }} style={{ width: 200, height: 280, borderRadius: 16 }} contentFit="cover" />
+      {/* Header */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingBottom: 0 }}>
+        <Pressable onPress={() => router.back()}><Icon name="back" size={20} color={C.text} /></Pressable>
+        <Text style={{ fontFamily: FONT.mono, fontSize: 10, color: C.textTertiary, letterSpacing: 1 }}>REPORT №{reportNum}</Text>
+        <Pressable onPress={() => router.push({ pathname: "/share", params: { cardId: card.id } } as any)}>
+          <Icon name="share" size={20} color={C.text} />
+        </Pressable>
+      </View>
+
+      {/* Card + grade */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, flexDirection: "row", gap: 14, alignItems: "flex-start" }}>
+        <View style={{ borderRadius: 12, overflow: "hidden", ...({ boxShadow: SHADOW.hero } as any), position: "relative" }}>
+          {heroUri ? (
+            <Image source={{ uri: heroUri }} style={{ width: 130, height: 182, borderRadius: 12 }} contentFit="cover" />
+          ) : (
+            <CardArt kind={artKindFor(result.cardName)} width={130} height={182} />
+          )}
+          {grade >= 9.5 && <HoloFoil intensity={0.4} />}
         </View>
-        <GradeBadge grade={result.overallGrade} size="large" />
-        <View style={{ alignItems: "center", gap: 6 }}>
-          <Text style={{ fontSize: 26, fontWeight: "800", color: gradeColor, letterSpacing: -0.5 }}>
-            PSA {result.overallGrade} — {gradeLabel}
-          </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 100, backgroundColor: `${confidenceColor}18`, borderWidth: 1, borderColor: `${confidenceColor}40` }}>
-            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: confidenceColor }} />
-            <Text style={{ fontSize: 13, color: confidenceColor, fontWeight: "600" }}>{result.confidence} Confidence</Text>
+        <View style={{ flex: 1, paddingTop: 4 }}>
+          <Text style={{ fontFamily: FONT.mono, fontSize: 9, color: C.textTertiary, letterSpacing: 1.5 }}>FINAL GRADE</Text>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 4 }}>
+            <Text style={{ fontFamily: FONT.display, fontSize: 80, color: gradeColor, lineHeight: 70, letterSpacing: -3 }}>
+              {Number.isInteger(grade) ? grade : Math.floor(grade)}
+            </Text>
+            {!Number.isInteger(grade) && (
+              <Text style={{ fontFamily: FONT.display, fontSize: 24, color: gradeColor, lineHeight: 24 }}>.5</Text>
+            )}
+            {Number.isInteger(grade) && (
+              <Text style={{ fontFamily: FONT.display, fontSize: 24, color: gradeColor, lineHeight: 24 }}>.0</Text>
+            )}
+          </View>
+          <Text style={{ fontFamily: FONT.displayItalic, fontSize: 18, color: C.text, marginTop: 2 }}>{tierName}</Text>
+          <View style={{ marginTop: 8, alignSelf: "flex-start", paddingVertical: 4, paddingHorizontal: 8, backgroundColor: `${gradeColor}1F`, borderWidth: 1, borderColor: `${gradeColor}55`, borderRadius: 6, flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text style={{ fontFamily: FONT.mono, fontSize: 9, color: gradeColor }}>●</Text>
+            <Text style={{ fontFamily: FONT.monoBold, fontSize: 9, color: gradeColor, letterSpacing: 0.5 }}>{confPct}% CONFIDENCE</Text>
           </View>
         </View>
       </View>
 
-      {/* Card ID */}
-      <View style={{ borderRadius: 20, borderCurve: "continuous", backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, padding: 18, gap: 6 }}>
-        <Text style={{ fontSize: 11, fontWeight: "600", color: C.textTertiary, textTransform: "uppercase", letterSpacing: 0.8 }}>Card Identified</Text>
-        <Text selectable style={{ fontSize: 20, fontWeight: "700", color: C.text, letterSpacing: -0.3 }}>{result.cardName}</Text>
-        <Text selectable style={{ fontSize: 14, color: C.textSecondary }}>{result.cardSet} ({result.cardYear}) · #{result.cardNumber}</Text>
+      {/* Card meta */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
+        <Text selectable style={{ fontSize: 17, fontFamily: FONT.uiBold, color: C.text }}>{result.cardName}</Text>
+        <Text selectable style={{ fontSize: 12, color: C.textSecondary, marginTop: 2 }}>
+          {[result.cardSet, result.cardYear, result.cardNumber ? `#${result.cardNumber}` : null].filter(Boolean).join(" · ")}
+        </Text>
       </View>
 
       {/* Sub-grades */}
-      <View style={{ borderRadius: 20, borderCurve: "continuous", backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, padding: 18, gap: 14 }}>
-        <Text style={{ fontSize: 11, fontWeight: "600", color: C.textTertiary, textTransform: "uppercase", letterSpacing: 0.8 }}>Sub-Grade Breakdown</Text>
-        <SubGradeBar
-          label="Centering"
-          score={result.subGrades.centering}
-          detail={
-            result.centeringDetail.backLeftRight
-              ? `Front: ${result.centeringDetail.leftRight} LR · ${result.centeringDetail.topBottom} TB  ·  Back: ${result.centeringDetail.backLeftRight} LR`
-              : `${result.centeringDetail.leftRight} LR · ${result.centeringDetail.topBottom} TB`
-          }
-        />
-        <SubGradeBar label="Corners" score={result.subGrades.corners} />
-        <SubGradeBar label="Edges" score={result.subGrades.edges} />
-        <SubGradeBar label="Surface" score={result.subGrades.surface} />
+      <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
+        <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.textTertiary, letterSpacing: 1.5, marginBottom: 10 }}>SUB-GRADES</Text>
+        <View style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14 }}>
+          {([
+            ["Centering", result.subGrades.centering, `${result.centeringDetail.leftRight} · ${result.centeringDetail.topBottom}`],
+            ["Corners",   result.subGrades.corners,   summaryFor(result.cornersDetail)],
+            ["Edges",     result.subGrades.edges,     summaryFor(result.edgesDetail)],
+            ["Surface",   result.subGrades.surface,   summaryFor(result.surfaceDetail)],
+          ] as const).map(([label, val, detail], i, arr) => {
+            const c = getGradeColor(val);
+            return (
+              <View key={label} style={{
+                flexDirection: "row", alignItems: "center", gap: 12,
+                paddingTop: i === 0 ? 14 : 12, paddingBottom: i === arr.length - 1 ? 14 : 12,
+                borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: C.borderSubtle,
+              }}>
+                <View style={{ width: 96 }}>
+                  <Text style={{ fontSize: 13, fontFamily: FONT.uiBold, color: C.text }}>{label}</Text>
+                  {detail ? <Text numberOfLines={1} style={{ fontSize: 10, color: C.textTertiary, fontFamily: FONT.mono, marginTop: 1 }}>{detail}</Text> : null}
+                </View>
+                <View style={{ flex: 1, height: 5, backgroundColor: C.bgRaised, borderRadius: 3, overflow: "hidden" }}>
+                  <View style={{ width: `${val * 10}%`, height: "100%", backgroundColor: c, borderRadius: 3, ...({ boxShadow: `0px 0px 8px ${c}80` } as any) }} />
+                </View>
+                <Text style={{ fontFamily: FONT.display, fontSize: 22, color: c, width: 32, textAlign: "right", lineHeight: 22 }}>{val}</Text>
+              </View>
+            );
+          })}
+        </View>
       </View>
 
       {/* Tips */}
       {result.tips.length > 0 && (
-        <View style={{ borderRadius: 20, borderCurve: "continuous", backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, padding: 18, gap: 12 }}>
-          <Text style={{ fontSize: 11, fontWeight: "600", color: C.textTertiary, textTransform: "uppercase", letterSpacing: 0.8 }}>Grade-Up Tips</Text>
-          {result.tips.map((tip, i) => (
-            <View key={i} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
-              <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: C.goldFaint, justifyContent: "center", alignItems: "center", marginTop: 1 }}>
-                <Text style={{ fontSize: 11, fontWeight: "700", color: C.gold }}>{i + 1}</Text>
+        <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
+          <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.textTertiary, letterSpacing: 1.5, marginBottom: 10 }}>WHAT&apos;S KEEPING IT FROM A 10</Text>
+          <View style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, padding: 14, gap: 12 }}>
+            {result.tips.map((tip, i) => (
+              <View key={i} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+                <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: C.goldFaint, justifyContent: "center", alignItems: "center", marginTop: 1 }}>
+                  <Text style={{ fontSize: 11, fontFamily: FONT.monoBold, color: C.gold }}>{i + 1}</Text>
+                </View>
+                <Text selectable style={{ fontSize: 13, color: C.textSecondary, lineHeight: 19, flex: 1 }}>{tip}</Text>
               </View>
-              <Text selectable style={{ fontSize: 14, color: C.textSecondary, lineHeight: 20, flex: 1 }}>{tip}</Text>
-            </View>
-          ))}
+            ))}
+          </View>
         </View>
       )}
 
       {/* Actions */}
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, flexDirection: "row", gap: 8 }}>
+        <Pressable
+          onPress={() => router.push({ pathname: "/share", params: { cardId: card.id } } as any)}
+          style={({ pressed }) => ({
+            flex: 1, paddingVertical: 14, borderRadius: 12,
+            backgroundColor: C.mint, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+            opacity: pressed ? 0.85 : 1,
+            ...({ boxShadow: SHADOW.glow } as any),
+          })}
+        >
+          <Icon name="share" size={15} color={C.onMint} strokeWidth={2.5} />
+          <Text style={{ fontFamily: FONT.uiBold, fontSize: 14, color: C.onMint }}>Share to feed</Text>
+        </Pressable>
         <Pressable
           onPress={async () => {
-            if (!card) return;
             const newVal = !card.favorite;
             try {
               if (userId) await sbToggleFavorite(card.id, newVal);
               else await localToggleFavorite(card.id);
               setCard({ ...card, favorite: newVal });
-            } catch {
-              // favorite toggle failed silently — don't update UI
-            }
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            } catch {}
           }}
           style={({ pressed }) => ({
-            flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-            padding: 15, borderRadius: 16, borderCurve: "continuous",
-            backgroundColor: card.favorite ? "rgba(255,59,48,0.12)" : C.surface,
-            borderWidth: 1, borderColor: card.favorite ? "rgba(255,59,48,0.4)" : C.border,
-            opacity: pressed ? 0.8 : 1,
+            width: 50, height: 50, borderRadius: 12,
+            backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+            justifyContent: "center", alignItems: "center",
+            opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Text style={{ fontSize: 18 }}>{card.favorite ? "❤️" : "🤍"}</Text>
-          <Text style={{ fontSize: 15, fontWeight: "600", color: card.favorite ? "#FF3B30" : C.textSecondary }}>{card.favorite ? "Saved" : "Save"}</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => router.dismissTo("/(scan)")}
-          style={({ pressed }) => ({
-            flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-            padding: 15, borderRadius: 16, borderCurve: "continuous",
-            backgroundColor: C.red, opacity: pressed ? 0.85 : 1,
-            boxShadow: SHADOW.glow,
-          })}
-        >
-          <Text style={{ fontSize: 18 }}>📸</Text>
-          <Text style={{ fontSize: 15, fontWeight: "600", color: "white" }}>Scan Another</Text>
+          <Icon name={card.favorite ? "heart" : "bookmark"} size={18} color={card.favorite ? C.mint : C.text} fill={card.favorite ? C.mint : "none"} />
         </Pressable>
       </View>
 
-      <Text selectable style={{ fontSize: 11, color: C.textTertiary, textAlign: "center", lineHeight: 16 }}>
-        This is an estimate only. Actual PSA grades may differ due to human subjectivity.
+      <Text selectable style={{ fontSize: 11, color: C.textTertiary, textAlign: "center", lineHeight: 16, paddingHorizontal: 24, paddingTop: 16 }}>
+        AI estimate only — not an official grade. Results may differ from professional grading services. Don&apos;t rely on this for purchase or sale decisions.
       </Text>
     </ScrollView>
   );
+}
+
+function summaryFor(detail: any): string | null {
+  if (!detail) return null;
+  if (detail.notes) return detail.notes;
+  // Surface a salient location if present
+  const v = Object.values(detail).find((x) => typeof x === "string" && x);
+  return (v as string) || null;
 }

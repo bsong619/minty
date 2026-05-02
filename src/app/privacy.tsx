@@ -29,7 +29,7 @@ export default function PrivacyScreen() {
         </View>
 
         <Section title="1. Information We Collect">
-          We collect information you provide directly when using Minty: email address (if you create an account or sign in with Apple/Google), card images you submit for AI grading analysis, scan history, grading results, and collection data, and subscription and payment status (processed by Apple). We also automatically collect device type, operating system version, and crash reports to improve app stability. We do not collect precise location data.
+          We collect information you provide directly when using Minty: email address (if you create an account or sign in with Apple/Google), card images you submit for AI grading analysis, and scan history, grading results, and collection data. We also automatically collect device type, operating system version, and crash reports to improve app stability. We do not collect precise location data.
         </Section>
 
         <Section title="2. Authentication & Account Data">
@@ -37,7 +37,7 @@ export default function PrivacyScreen() {
         </Section>
 
         <Section title="3. How We Use Your Information">
-          We use your information to: provide and improve the AI card grading service, maintain your card collection history, process subscription payments through Apple's App Store, send account-related communications (verification, password reset), and analyze aggregated app usage to improve performance and stability. We do not sell, rent, or share your personal information with third parties for marketing or advertising purposes.
+          We use your information to: provide and improve the AI card grading service, maintain your card collection history, send account-related communications (verification, password reset), and analyze aggregated app usage to improve performance and stability. We do not sell, rent, or share your personal information with third parties for marketing or advertising purposes.
         </Section>
 
         <Section title="4. Card Images & AI Processing">
@@ -49,7 +49,7 @@ export default function PrivacyScreen() {
         </Section>
 
         <Section title="6. Third-Party Services">
-          Minty integrates with the following third-party services, each operating under its own privacy policy: Supabase (database, authentication, and file storage), Anthropic Claude AI (card image analysis and grading), Apple App Store (payment processing, app distribution, and Sign in with Apple), Google (Google Sign-In authentication), and Pokemon TCG API (official card artwork retrieval for display purposes).
+          Minty integrates with the following third-party services, each operating under its own privacy policy: Supabase (database, authentication, and file storage), Anthropic Claude AI (card image analysis and grading), Apple App Store (payment processing, app distribution, and Sign in with Apple), and Google (Google Sign-In authentication).
         </Section>
 
         <Section title="7. Data Retention & Deletion">
@@ -90,7 +90,7 @@ export default function PrivacyScreen() {
             opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Text style={{ fontSize: 16, fontWeight: "600", color: "white" }}>Got It</Text>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: "white" }}>Done</Text>
         </Pressable>
       </View>
     </View>

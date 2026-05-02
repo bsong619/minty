@@ -54,7 +54,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     loadAuth();
 
     if (!isSupabaseConfigured) return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: any) => {
       setUserId(session?.user?.id ?? null);
       setUserEmail(session?.user?.email ?? null);
       setIsAnonymous(session?.user?.is_anonymous ?? true);

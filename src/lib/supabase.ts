@@ -83,7 +83,6 @@ export async function signInWithApple(identityToken: string): Promise<string | n
 export async function signInWithGoogle(): Promise<string | null> {
   if (!supabase) throw new Error("Supabase is not configured.");
   const redirectTo = Linking.createURL("auth/callback");
-  console.log("[Google OAuth] redirectTo:", redirectTo);
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

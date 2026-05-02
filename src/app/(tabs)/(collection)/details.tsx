@@ -71,7 +71,7 @@ export default function DetailsScreen() {
         <GradeBadge grade={result.overallGrade} size="large" />
         <View style={{ alignItems: "center", gap: 6 }}>
           <Text style={{ fontSize: 26, fontWeight: "800", color: gradeColor, letterSpacing: -0.5 }}>
-            PSA {result.overallGrade} — {GRADE_LABELS[result.overallGrade] ?? ""}
+            Grade {result.overallGrade} — {GRADE_LABELS[result.overallGrade] ?? ""}
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 100, backgroundColor: `${confidenceColor}18`, borderWidth: 1, borderColor: `${confidenceColor}40` }}>
             <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: confidenceColor }} />
@@ -112,6 +112,10 @@ export default function DetailsScreen() {
           ))}
         </View>
       )}
+
+      <Text selectable style={{ fontSize: 11, color: C.textTertiary, textAlign: "center", lineHeight: 16, paddingHorizontal: 8 }}>
+        AI estimate only — not an official grade. Results may differ from professional grading services. Do not rely on this for purchase or sale decisions.
+      </Text>
 
       {/* Actions */}
       <View style={{ flexDirection: "row", gap: 10 }}>

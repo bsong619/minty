@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Minty — Design Preview</title>
+<link rel="preconnect" href="https://rsms.me/" />
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+<style>
+  :root {
+    --bg: #050507;
+    --bg-elevated: #0E0E12;
+    --surface: #16161B;
+    --surface-2: #1E1E25;
+    --border: #26262E;
+    --border-subtle: #1B1B22;
+    --text: #F4F4F6;
+    --text-2: #95959E;
+    --text-3: #5B5B66;
+    --text-4: #2F2F38;
+    --mint: #34D9A0;
+    --red: #FF3D5C;
+    --gold: #FFC93C;
+    --blue: #5BA9FF;
+    --orange: #FFA042;
+    --glass: rgba(22, 22, 27, 0.62);
+    --glass-strong: rgba(22, 22, 27, 0.82);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shine: rgba(255, 255, 255, 0.04);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #000; color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; font-feature-settings: "ss01", "cv11"; }
+  body { min-height: 100vh; overflow-x: hidden; padding: 36px 24px 80px; }
+  .header { max-width: 1280px; margin: 0 auto 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .header h1 { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.7px; background: linear-gradient(120deg, #fff 0%, #94f5cd 60%, #34D9A0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .header p { margin: 4px 0 0; color: var(--text-2); font-size: 13px; max-width: 700px; line-height: 1.5; }
+  .meta { font-size: 11px; color: var(--text-3); letter-spacing: 0.6px; text-transform: uppercase; font-weight: 600; padding: 6px 12px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface); }
+
+  .frame-grid { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 36px 24px; }
+  .frame { display: flex; flex-direction: column; gap: 14px; }
+  .frame .label { font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 1.4px; padding-left: 4px; display: flex; gap: 10px; align-items: center; }
+  .frame .label .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 12px var(--mint); }
+  .frame .caption { font-size: 12px; color: var(--text-3); line-height: 1.5; padding: 0 4px; }
+
+  .device {
+    width: 360px;
+    height: 760px;
+    margin: 0 auto;
+    border-radius: 56px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+    border: 8px solid #0a0a0c;
+    box-shadow:
+      0 0 0 1.5px #2a2a30,
+      0 50px 110px rgba(0, 0, 0, 0.55),
+      0 18px 40px rgba(0, 0, 0, 0.35),
+      inset 0 0 30px rgba(255, 255, 255, 0.015);
+  }
+  .device::before {
+    content: ""; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 124px; height: 36px; background: #000; border-radius: 100px; z-index: 50;
+  }
+  .device::after {
+    content: ""; position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+    width: 132px; height: 4px; background: rgba(255,255,255,0.45); border-radius: 100px; z-index: 50;
+  }
+  .screen { position: absolute; inset: 0; overflow: hidden; }
+  .status-bar {
+    position: absolute; top: 0; left: 0; right: 0; height: 54px; padding: 18px 32px 0; z-index: 30;
+    display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; color: var(--text);
+  }
+  .status-bar .right { display: flex; gap: 6px; align-items: center; }
+  .status-bar svg { width: 16px; height: 11px; }
+
+  .scroll { position: absolute; inset: 0; padding-top: 60px; padding-bottom: 110px; overflow-y: auto; }
+  .scroll::-webkit-scrollbar { display: none; }
+
+  /* HOME SCREEN */
+  .home-hero { padding: 18px 22px 4px; }
+  .home-greet { font-size: 13px; color: var(--text-2); margin: 0 0 4px; font-weight: 500; }
+  .home-title { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin: 0; line-height: 1.1; }
+  .home-title .accent { color: var(--mint); }
+  .stats { display: flex; gap: 10px; padding: 18px 22px 0; }
+  .stat {
+    flex: 1; padding: 14px 14px; border-radius: 18px;
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg-elevated) 100%);
+    border: 1px solid var(--border-subtle);
+    position: relative; overflow: hidden;
+  }
+  .stat::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: linear-gradient(90deg, transparent, var(--glass-shine), transparent); }
+  .stat .num { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; font-feature-settings: "tnum"; }
+  .stat .lbl { font-size: 11px; color: var(--text-3); margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; }
+  .stat.gold .num { color: var(--gold); }
+  .stat.mint .num { color: var(--mint); }
+  .stat.red .num { color: var(--text); }
+
+  .scan-cta-section { padding: 22px 22px 6px; }
+  .scan-cta-section .heading { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 1.4px; margin: 0 0 10px; padding: 0 4px; }
+  .scan-cta {
+    width: 100%; padding: 22px; border-radius: 24px;
+    background: radial-gradient(120% 130% at 0% 0%, rgba(52, 217, 160, 0.18) 0%, rgba(52, 217, 160, 0) 55%), linear-gradient(180deg, #1a2421 0%, #131815 100%);
+    border: 1px solid rgba(52, 217, 160, 0.22);
+    display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 60px rgba(52, 217, 160, 0.08);
+  }
+  .scan-cta .icon-row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .scan-cta .lens {
+    width: 52px; height: 52px; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(52, 217, 160, 0.32), rgba(52, 217, 160, 0.08));
+    border: 1px solid rgba(52, 217, 160, 0.4);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+  .scan-cta .badge { font-size: 11px; font-weight: 700; color: var(--mint); letter-spacing: 1px; padding: 6px 10px; border-radius: 100px; background: rgba(52, 217, 160, 0.12); border: 1px solid rgba(52, 217, 160, 0.3); }
+  .scan-cta .title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; }
+  .scan-cta .sub { font-size: 13px; color: var(--text-2); line-height: 1.5; margin: 0; }
+  .scan-cta .arrow {
+    align-self: flex-end; margin-top: 4px;
+    width: 44px; height: 44px; border-radius: 14px;
+    background: var(--mint); color: #03110A;
+    display: flex; align-items: center; justify-content: center; font-weight: 800;
+    box-shadow: 0 8px 24px rgba(52, 217, 160, 0.35);
+  }
+  .secondary-row { padding: 12px 22px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sec-card {
+    padding: 16px 14px; border-radius: 18px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .sec-card .ico { font-size: 22px; }
+  .sec-card .ttl { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; }
+  .sec-card .sub { font-size: 11px; color: var(--text-3); line-height: 1.4; }
+
+  .recent-section { padding: 22px 22px 0; }
+  .recent-section .heading { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 1.4px; margin: 0 0 10px; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+  .recent-section .heading .see-all { color: var(--mint); font-weight: 600; letter-spacing: 0.4px; text-transform: none; font-size: 12px; }
+  .recent-cards { display: flex; gap: 10px; overflow-x: auto; padding: 4px 4px 8px; scroll-snap-type: x mandatory; }
+  .recent-cards::-webkit-scrollbar { display: none; }
+  .mini-card {
+    flex: 0 0 110px; aspect-ratio: 0.72; border-radius: 14px; overflow: hidden;
+    background: linear-gradient(180deg, #2a2a32, #16161b);
+    position: relative; scroll-snap-align: start;
+    border: 1px solid var(--border-subtle);
+  }
+  .mini-card .grade-pill {
+    position: absolute; top: 8px; right: 8px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; font-feature-settings: "tnum";
+  }
+  .mini-card .stripe {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 22px; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.85));
+    display: flex; align-items: flex-end; padding: 0 8px 4px; font-size: 10px; color: var(--text-2);
+  }
+  .mini-card.g10 .grade-pill { color: var(--gold); border: 1.5px solid var(--gold); }
+  .mini-card.g9  .grade-pill { color: var(--mint); border: 1.5px solid var(--mint); }
+  .mini-card.g8  .grade-pill { color: var(--blue); border: 1.5px solid var(--blue); }
+  .mini-card.g7  .grade-pill { color: var(--blue); border: 1.5px solid var(--blue); }
+
+  .glow-1 { background: linear-gradient(160deg, #1a3128, #0f1814 70%); }
+  .glow-2 { background: linear-gradient(160deg, #2b1d1f, #160d0f 70%); }
+  .glow-3 { background: linear-gradient(160deg, #1c1d2c, #0e0f17 70%); }
+  .glow-4 { background: linear-gradient(160deg, #2a2415, #1a1609 70%); }
+
+  /* TAB BAR — Liquid Glass */
+  .tabbar {
+    position: absolute; left: 16px; right: 16px; bottom: 18px;
+    height: 64px; border-radius: 28px;
+    background: var(--glass);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    display: flex; align-items: center; justify-content: space-around;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+    z-index: 40;
+  }
+  .tabbar .tab { display: flex; flex-direction: column; gap: 3px; align-items: center; padding: 0 14px; opacity: 0.55; transition: opacity 0.2s; }
+  .tabbar .tab.active { opacity: 1; }
+  .tabbar .tab .ico { font-size: 22px; }
+  .tabbar .tab .lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.4px; }
+  .tabbar .tab.active .lbl { color: var(--mint); }
+  .tabbar .scan-btn {
+    width: 56px; height: 56px; border-radius: 22px;
+    background: linear-gradient(180deg, var(--mint), #1da97a);
+    display: flex; align-items: center; justify-content: center;
+    margin-top: -22px; opacity: 1; box-shadow: 0 12px 30px rgba(52, 217, 160, 0.45);
+  }
+
+  /* CAMERA SCREEN */
+  .cam-bg { position: absolute; inset: 0; background: #050505; overflow: hidden; }
+  .cam-bg::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(60% 40% at 50% 45%, rgba(255,255,255,0.04), transparent 70%),
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.018) 0 2px, transparent 2px 8px);
+  }
+  .cam-card {
+    position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%);
+    width: 220px; height: 308px; border-radius: 14px;
+    background: linear-gradient(135deg, #2a2438, #1a1428 60%, #251a36);
+    box-shadow: 0 30px 70px rgba(0,0,0,0.6), inset 0 0 30px rgba(255,255,255,0.04);
+    overflow: hidden;
+  }
+  .cam-card::before {
+    content: "MINTY"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg);
+    font-size: 38px; font-weight: 900; letter-spacing: -1px;
+    color: rgba(255, 255, 255, 0.08);
+  }
+  .cam-cutout {
+    position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%);
+    width: 240px; height: 336px; pointer-events: none;
+  }
+  .cam-cutout .corner { position: absolute; width: 32px; height: 32px; border-color: var(--mint); border-style: solid; border-width: 0; box-shadow: 0 0 14px rgba(52, 217, 160, 0.5); }
+  .cam-cutout .corner.tl { top: 0; left: 0; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 6px; }
+  .cam-cutout .corner.tr { top: 0; right: 0; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 6px; }
+  .cam-cutout .corner.bl { bottom: 0; left: 0; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 6px; }
+  .cam-cutout .corner.br { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 6px; }
+  .cam-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.55); }
+  .cam-window {
+    position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%);
+    width: 240px; height: 336px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+    border-radius: 6px;
+  }
+  .cam-instructions {
+    position: absolute; left: 0; right: 0; top: 90px; text-align: center;
+  }
+  .cam-instructions .pill {
+    display: inline-flex; gap: 8px; align-items: center;
+    padding: 8px 16px; border-radius: 100px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    font-size: 13px; font-weight: 600;
+  }
+  .cam-instructions .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 8px var(--mint); animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+  .cam-hint { margin-top: 16px; color: rgba(255,255,255,0.5); font-size: 12px; }
+
+  .cam-controls {
+    position: absolute; left: 0; right: 0; bottom: 60px;
+    display: flex; align-items: center; justify-content: space-around; padding: 0 32px;
+  }
+  .cam-side {
+    width: 48px; height: 48px; border-radius: 16px;
+    background: var(--glass);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .shutter-wrap { position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; }
+  .shutter-wrap::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 3px solid rgba(255,255,255,0.85); }
+  .shutter { width: 70px; height: 70px; border-radius: 50%; background: white; box-shadow: 0 8px 24px rgba(255,255,255,0.2); }
+  .cam-close {
+    position: absolute; top: 70px; left: 22px;
+    width: 38px; height: 38px; border-radius: 12px;
+    background: var(--glass-strong);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    display: flex; align-items: center; justify-content: center; font-size: 16px; z-index: 31;
+  }
+  .cam-flash {
+    position: absolute; top: 70px; right: 22px; padding: 8px 14px;
+    border-radius: 100px; background: var(--glass-strong);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    font-size: 12px; font-weight: 600; color: var(--gold); z-index: 31;
+  }
+
+  /* ANALYZING SCREEN */
+  .analyze-bg { position: absolute; inset: 0; background:
+    radial-gradient(80% 50% at 50% 30%, rgba(255, 201, 60, 0.08), transparent 60%),
+    radial-gradient(60% 40% at 50% 80%, rgba(52, 217, 160, 0.05), transparent 70%),
+    var(--bg);
+  }
+  .analyze-card-wrap {
+    position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%);
+    width: 200px; height: 280px;
+  }
+  .analyze-card {
+    width: 100%; height: 100%;
+    border-radius: 14px; overflow: hidden;
+    background: linear-gradient(135deg, #2a2438, #1a1428 60%, #251a36);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 80px rgba(255, 201, 60, 0.12);
+    position: relative;
+  }
+  .analyze-card::before {
+    content: "MINTY"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg);
+    font-size: 36px; font-weight: 900; letter-spacing: -1px; color: rgba(255, 255, 255, 0.07);
+  }
+  .scan-line {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    box-shadow: 0 0 20px var(--gold);
+    top: 50%; animation: scan 2.4s ease-in-out infinite;
+  }
+  @keyframes scan { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+  .analyze-glow {
+    position: absolute; inset: -12px; border-radius: 22px; border: 2px solid var(--gold);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  .analyze-status {
+    position: absolute; left: 0; right: 0; bottom: 26%; text-align: center; padding: 0 32px;
+  }
+  .analyze-status h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 12px; }
+  .analyze-status .step { font-size: 14px; color: var(--text-2); margin: 0 0 22px; min-height: 22px; }
+  .progress-dots { display: flex; gap: 6px; align-items: center; justify-content: center; }
+  .progress-dots span { width: 6px; height: 6px; border-radius: 3px; background: var(--border); transition: all 0.4s; }
+  .progress-dots span.active { width: 24px; background: var(--gold); }
+  .progress-dots span.done { background: var(--mint); }
+
+  /* RESULTS SCREEN */
+  .res-hero {
+    padding: 24px 22px 18px;
+    background:
+      radial-gradient(80% 50% at 50% 0%, rgba(255, 201, 60, 0.12), transparent 70%),
+      var(--bg);
+    text-align: center;
+  }
+  .res-card-thumb {
+    width: 140px; height: 196px; margin: 0 auto;
+    border-radius: 12px; overflow: hidden;
+    background: linear-gradient(135deg, #2a2438, #1a1428 60%, #251a36);
+    box-shadow: 0 24px 50px rgba(0,0,0,0.55);
+    position: relative;
+  }
+  .res-card-thumb::before {
+    content: "MINTY"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg);
+    font-size: 26px; font-weight: 900; letter-spacing: -1px; color: rgba(255, 255, 255, 0.08);
+  }
+  .res-grade {
+    position: relative; margin: -28px auto 0; width: 110px; height: 110px;
+    border-radius: 50%;
+    background: radial-gradient(60% 60% at 50% 35%, rgba(255, 201, 60, 0.25), rgba(255, 201, 60, 0.06) 70%);
+    border: 4px solid var(--gold);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 0 60px rgba(255, 201, 60, 0.35), inset 0 0 0 8px rgba(255, 201, 60, 0.06);
+  }
+  .res-grade .lbl { font-size: 10px; font-weight: 700; color: var(--gold); letter-spacing: 2.5px; }
+  .res-grade .num { font-size: 48px; font-weight: 900; color: var(--gold); font-feature-settings: "tnum"; line-height: 1; }
+  .res-title { margin: 18px 0 4px; font-size: 22px; font-weight: 800; letter-spacing: -0.4px; color: var(--gold); }
+  .res-sub { margin: 0; font-size: 13px; color: var(--text-2); }
+  .res-confidence {
+    display: inline-flex; gap: 6px; align-items: center;
+    margin-top: 12px; padding: 6px 12px; border-radius: 100px;
+    background: rgba(52, 217, 160, 0.12); border: 1px solid rgba(52, 217, 160, 0.3);
+    font-size: 12px; color: var(--mint); font-weight: 600;
+  }
+
+  .res-section { padding: 18px 22px 0; }
+  .res-section .heading { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 1.4px; margin: 0 0 10px; padding: 0 4px; }
+  .res-card-info {
+    border-radius: 20px; background: var(--surface);
+    border: 1px solid var(--border-subtle); padding: 16px;
+  }
+  .res-card-info .name { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+  .res-card-info .meta { font-size: 12px; color: var(--text-2); margin-top: 4px; }
+  .sub-grades { border-radius: 20px; background: var(--surface); border: 1px solid var(--border-subtle); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .sub-grade { display: flex; flex-direction: column; gap: 6px; }
+  .sub-grade .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .sub-grade .row .lbl { font-size: 13px; font-weight: 600; color: var(--text); }
+  .sub-grade .row .val { font-size: 16px; font-weight: 800; font-feature-settings: "tnum"; }
+  .sub-grade .bar { height: 6px; border-radius: 3px; background: var(--border-subtle); overflow: hidden; }
+  .sub-grade .bar .fill { height: 100%; border-radius: 3px; }
+  .sub-grade .meta { font-size: 11px; color: var(--text-3); }
+
+  .actions-row { display: flex; gap: 10px; padding: 18px 22px 22px; }
+  .btn {
+    flex: 1; padding: 15px; border-radius: 18px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 14px; font-weight: 700; letter-spacing: -0.1px;
+  }
+  .btn.ghost { background: var(--surface); border: 1px solid var(--border-subtle); color: var(--text-2); }
+  .btn.primary { background: linear-gradient(180deg, var(--mint), #1ea97a); color: #03110A; box-shadow: 0 12px 30px rgba(52, 217, 160, 0.35); }
+
+  .disclaimer { padding: 0 22px 30px; text-align: center; font-size: 11px; color: var(--text-3); line-height: 1.55; }
+
+  /* PAYWALL */
+  .pay-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(80% 60% at 50% -10%, rgba(255, 201, 60, 0.18), transparent 60%),
+      radial-gradient(60% 50% at 50% 110%, rgba(52, 217, 160, 0.1), transparent 70%),
+      var(--bg);
+  }
+  .pay-hero { padding: 50px 28px 16px; text-align: center; }
+  .pay-crown { font-size: 36px; margin-bottom: 12px; filter: drop-shadow(0 0 20px rgba(255, 201, 60, 0.5)); }
+  .pay-title { font-size: 28px; font-weight: 900; letter-spacing: -0.7px; margin: 0 0 6px; line-height: 1.15; }
+  .pay-title .gold { background: linear-gradient(120deg, #fff 0%, var(--gold) 60%, #ff9d2c 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .pay-sub { font-size: 14px; color: var(--text-2); margin: 0; line-height: 1.5; max-width: 280px; margin: 0 auto; }
+
+  .features { padding: 22px 22px 6px; display: flex; flex-direction: column; gap: 10px; }
+  .feat {
+    display: flex; gap: 12px; align-items: center;
+    padding: 12px 14px; border-radius: 16px;
+    background: var(--surface); border: 1px solid var(--border-subtle);
+  }
+  .feat .check { width: 28px; height: 28px; border-radius: 50%; background: rgba(52, 217, 160, 0.16); border: 1px solid rgba(52, 217, 160, 0.4); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--mint); font-weight: 800; font-size: 14px; }
+  .feat .txt { font-size: 14px; font-weight: 600; }
+  .feat .sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  .plans { padding: 16px 22px 0; display: flex; flex-direction: column; gap: 10px; }
+  .plan {
+    padding: 16px; border-radius: 18px; background: var(--surface);
+    border: 1.5px solid var(--border-subtle);
+    display: flex; align-items: center; gap: 12px; position: relative;
+  }
+  .plan.active { border-color: var(--gold); background: linear-gradient(180deg, rgba(255, 201, 60, 0.08), rgba(255, 201, 60, 0.02)); box-shadow: 0 8px 24px rgba(255, 201, 60, 0.1); }
+  .plan .radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--text-3); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .plan.active .radio { border-color: var(--gold); }
+  .plan.active .radio::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--gold); }
+  .plan .info { flex: 1; }
+  .plan .info .ttl { font-size: 14px; font-weight: 700; }
+  .plan .info .sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .plan .price { font-size: 16px; font-weight: 800; font-feature-settings: "tnum"; letter-spacing: -0.3px; }
+  .plan .save-tag { position: absolute; top: -8px; right: 12px; padding: 3px 8px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; background: var(--gold); color: #1a1409; border-radius: 100px; }
+
+  .pay-cta-wrap { position: absolute; bottom: 18px; left: 16px; right: 16px; padding: 14px 16px 14px;
+    background: var(--glass-strong); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 24px; border: 1px solid var(--glass-border);
+    display: flex; flex-direction: column; gap: 8px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+  }
+  .pay-cta {
+    padding: 16px; border-radius: 16px; background: linear-gradient(180deg, var(--gold), #d49b1a); color: #1a1409;
+    font-size: 16px; font-weight: 800; letter-spacing: -0.2px; text-align: center;
+    box-shadow: 0 10px 24px rgba(255, 201, 60, 0.3);
+  }
+  .pay-mini { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-3); padding: 0 4px; }
+  .pay-mini a { color: var(--text-2); }
+
+  /* ONBOARDING */
+  .onb {
+    position: absolute; inset: 0; padding: 80px 32px 120px;
+    background:
+      radial-gradient(50% 30% at 50% 25%, rgba(52, 217, 160, 0.16), transparent 60%),
+      var(--bg);
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .onb .anim {
+    width: 220px; height: 220px; margin: 0 auto;
+    border-radius: 24px; background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; position: relative;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+  }
+  .onb .anim::before { content: ""; position: absolute; inset: 12px; border-radius: 18px; border: 2px dashed rgba(52, 217, 160, 0.35); }
+  .onb .anim .lens-big { font-size: 80px; }
+  .onb .copy { text-align: center; }
+  .onb h2 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 10px; }
+  .onb p { font-size: 14px; color: var(--text-2); margin: 0; line-height: 1.55; }
+  .onb .pager { display: flex; gap: 6px; justify-content: center; margin-top: 18px; }
+  .onb .pager span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-4); }
+  .onb .pager span.on { width: 22px; border-radius: 100px; background: var(--mint); }
+
+  /* footer */
+  .footer { max-width: 1280px; margin: 60px auto 0; padding: 24px; border-top: 1px solid var(--border-subtle); color: var(--text-3); font-size: 12px; line-height: 1.6; }
+  .footer h3 { color: var(--text); font-size: 13px; margin: 0 0 8px; letter-spacing: 0.4px; text-transform: uppercase; }
+  .footer .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+  .footer code { background: var(--surface); padding: 1px 6px; border-radius: 4px; font-size: 11px; color: var(--mint); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div>
+    <h1>Minty — Design Preview</h1>
+    <p>Rebrand away from Pokemon. Liquid-Glass tab bar, Cash-App-bold numerics, Photomath-style scan brackets, Cash-App / Linear typographic discipline. Mint as the single saturated accent; gold reserved for Gem Mint reveals.</p>
+  </div>
+  <div class="meta">v0.1 · 5 screens · 360×760</div>
+</header>
+
+<section class="frame-grid">
+
+  <!-- HOME -->
+  <div class="frame">
+    <div class="label"><span class="dot"></span> Home / Scan Hub</div>
+    <div class="device">
+      <div class="screen">
+        <div class="status-bar">
+          <span>9:41</span>
+          <span class="right">
+            <svg viewBox="0 0 16 11" fill="currentColor"><path d="M1 7h2v3H1zM5 5h2v5H5zM9 3h2v7H9zM13 1h2v9h-2z"/></svg>
+            <svg viewBox="0 0 24 11" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="0.5" width="20" height="10" rx="2"/><rect x="2" y="2" width="16" height="7" rx="1" fill="currentColor"/><rect x="21" y="3.5" width="2" height="4" rx="1" fill="currentColor"/></svg>
+          </span>
+        </div>
+
+        <div class="scroll">
+          <div class="home-hero">
+            <p class="home-greet">Welcome back, Brenden</p>
+            <h2 class="home-title">Is it <span class="accent">Minty?</span></h2>
+          </div>
+
+          <div class="stats">
+            <div class="stat gold"><div class="num">12</div><div class="lbl">Gem Mint</div></div>
+            <div class="stat mint"><div class="num">87</div><div class="lbl">Scanned</div></div>
+            <div class="stat red"><div class="num">8.4</div><div class="lbl">Avg Grade</div></div>
+          </div>
+
+          <div class="scan-cta-section">
+            <p class="heading">Start a scan</p>
+            <div class="scan-cta">
+              <div class="icon-row">
+                <div class="lens">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34D9A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+                <span class="badge">AI · Live</span>
+              </div>
+              <div>
+                <div class="title">Snap a card<br/>get a grade</div>
+                <p class="sub">Photograph the front and back. Our AI predicts a 1–10 grade with sub-scores in under 4 seconds.</p>
+              </div>
+              <div class="arrow">→</div>
+            </div>
+          </div>
+
+          <div class="secondary-row">
+            <div class="sec-card">
+              <div class="ico">📂</div>
+              <div>
+                <div class="ttl">From Library</div>
+                <div class="sub">Pick an existing card photo</div>
+              </div>
+            </div>
+            <div class="sec-card">
+              <div class="ico">📊</div>
+              <div>
+                <div class="ttl">Grade Guide</div>
+                <div class="sub">What 1–10 means</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="recent-section">
+            <p class="heading">Recently graded <a href="#" class="see-all">See all →</a></p>
+            <div class="recent-cards">
+              <div class="mini-card g10 glow-1"><div class="grade-pill">10</div><div class="stripe">Gem Mint</div></div>
+              <div class="mini-card g9 glow-2"><div class="grade-pill">9</div><div class="stripe">Mint</div></div>
+              <div class="mini-card g8 glow-3"><div class="grade-pill">8</div><div class="stripe">NM-MT</div></div>
+              <div class="mini-card g7 glow-4"><div class="grade-pill">7</div><div class="stripe">NM</div></div>
+            </div>
+          </div>
+        </div>
+
+        <nav class="tabbar">
+          <div class="tab active"><div class="ico">⌂</div><div class="lbl">Home</div></div>
+          <div class="tab"><div class="ico">📚</div><div class="lbl">Vault</div></div>
+          <div class="scan-btn">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#03110A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          <div class="tab"><div class="ico">📈</div><div class="lbl">Stats</div></div>
+          <div class="tab"><div class="ico">⚙</div><div class="lbl">More</div></div>
+        </nav>
+      </div>
+    </div>
+    <p class="caption">Big-numeric stat strip (Cash App). Liquid-Glass tab bar with scan FAB. Single saturated accent — mint. Gold reserved for the Gem Mint stat only. The dim "MINTY" diagonal in card thumbs is a <strong>placeholder</strong> — replace with your own bundled sample illustration to avoid trademarked artwork in the App Store screenshots.</p>
+  </div>
+
+  <!-- CAMERA -->
+  <div class="frame">
+    <div class="label"><span class="dot"></span> Camera / Capture</div>
+    <div class="device">
+      <div class="screen">
+        <div class="cam-bg"></div>
+        <div class="cam-card"></div>
+        <div class="cam-window"></div>
+        <div class="cam-cutout">
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+        </div>
+
+        <div class="cam-close">✕</div>
+        <div class="cam-flash">⚡ Auto</div>
+
+        <div class="cam-instructions">
+          <div class="pill"><span class="dot"></span> Aligned · Hold steady</div>
+          <div class="cam-hint">Front of card · Step 1 of 2</div>
+        </div>
+
+        <div class="cam-controls">
+          <div class="cam-side">🖼</div>
+          <div class="shutter-wrap">
+            <div class="shutter"></div>
+          </div>
+          <div class="cam-side">↻</div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Brackets glow mint when alignment is good (Photomath pattern). Liquid-Glass instruction pill replaces the previous "Camera Access Required" pre-prompt. Permission is now requested by iOS directly when the camera screen mounts — Apple 5.1.1(iv) compliant. Flash/library/flip controls shown.</p>
+  </div>
+
+  <!-- ANALYZING -->
+  <div class="frame">
+    <div class="label"><span class="dot"></span> Analyzing</div>
+    <div class="device">
+      <div class="screen">
+        <div class="analyze-bg"></div>
+        <div class="status-bar"><span>9:41</span></div>
+        <div class="analyze-card-wrap">
+          <div class="analyze-glow"></div>
+          <div class="analyze-card">
+            <div class="scan-line"></div>
+          </div>
+        </div>
+        <div class="analyze-status">
+          <h2>Analyzing card</h2>
+          <p class="step">Inspecting corners &amp; edges…</p>
+          <div class="progress-dots">
+            <span class="done"></span>
+            <span class="done"></span>
+            <span class="active"></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Gold pulse + scan-line on the captured photo (Arc Search "thinking face" idea). Progress dots stretch as steps complete. Whole screen targets ~4s; Live Activity with Dynamic Island for backgrounded grading is a future add.</p>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="frame">
+    <div class="label"><span class="dot"></span> Results</div>
+    <div class="device">
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span></div>
+        <div class="scroll">
+          <div class="res-hero">
+            <div class="res-card-thumb"></div>
+            <div class="res-grade">
+              <div class="lbl">GRADE</div>
+              <div class="num">9</div>
+            </div>
+            <h1 class="res-title">Mint · Grade 9</h1>
+            <p class="res-sub">Worth submitting for professional grading</p>
+            <div class="res-confidence"><span style="width:7px;height:7px;border-radius:4px;background:var(--mint);box-shadow:0 0 8px var(--mint);"></span>High confidence</div>
+          </div>
+
+          <div class="res-section">
+            <p class="heading">Card identified</p>
+            <div class="res-card-info">
+              <div class="name">2018 Sample Series — Holo #032</div>
+              <div class="meta">Premium Set (2018) · #32/120</div>
+            </div>
+          </div>
+
+          <div class="res-section">
+            <p class="heading">Sub-grade breakdown</p>
+            <div class="sub-grades">
+              <div class="sub-grade">
+                <div class="row"><span class="lbl">Centering</span><span class="val" style="color:var(--mint);">9.0</span></div>
+                <div class="bar"><div class="fill" style="width:90%;background:var(--mint);"></div></div>
+                <div class="meta">Front 56/44 LR · 53/47 TB · Back 78/22 LR</div>
+              </div>
+              <div class="sub-grade">
+                <div class="row"><span class="lbl">Corners</span><span class="val" style="color:var(--mint);">9.5</span></div>
+                <div class="bar"><div class="fill" style="width:95%;background:var(--mint);"></div></div>
+              </div>
+              <div class="sub-grade">
+                <div class="row"><span class="lbl">Edges</span><span class="val" style="color:var(--mint);">9.0</span></div>
+                <div class="bar"><div class="fill" style="width:90%;background:var(--mint);"></div></div>
+              </div>
+              <div class="sub-grade">
+                <div class="row"><span class="lbl">Surface</span><span class="val" style="color:var(--blue);">8.5</span></div>
+                <div class="bar"><div class="fill" style="width:85%;background:var(--blue);"></div></div>
+                <div class="meta">Faint print line above artwork — caps surface at 8.5</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions-row">
+            <div class="btn ghost">🤍 Save</div>
+            <div class="btn primary">📸 Scan Another</div>
+          </div>
+
+          <p class="disclaimer">AI estimate only — not an official grade. Results may differ from professional grading services. Do not rely on this for purchase or sale decisions.</p>
+        </div>
+      </div>
+    </div>
+    <p class="caption">PSA Photograde-style "what's keeping it from a 10" via per-bar reasoning text. Per-result disclaimer (audit recommendation) replaces the previous bare "PSA grades may differ" line. "Grade 9" replaces "PSA 9" — PSA itself is a registered trademark of Collectors Universe.</p>
+  </div>
+
+  <!-- PAYWALL -->
+  <div class="frame">
+    <div class="label"><span class="dot"></span> Paywall · Pro</div>
+    <div class="device">
+      <div class="screen">
+        <div class="pay-bg"></div>
+        <div class="status-bar"><span>9:41</span></div>
+        <div class="scroll" style="padding-bottom: 180px;">
+          <div class="pay-hero">
+            <div class="pay-crown">👑</div>
+            <h1 class="pay-title">Unlock <span class="gold">Minty Pro</span></h1>
+            <p class="pay-sub">Unlimited scans. Vault history. Grade-up coaching.</p>
+          </div>
+          <div class="features">
+            <div class="feat"><div class="check">✓</div><div><div class="txt">Unlimited scans</div><div class="sub">Free tier capped at 3 / day</div></div></div>
+            <div class="feat"><div class="check">✓</div><div><div class="txt">Front + back centering</div><div class="sub">More accurate Gem Mint detection</div></div></div>
+            <div class="feat"><div class="check">✓</div><div><div class="txt">Cloud vault</div><div class="sub">Sync your collection across devices</div></div></div>
+            <div class="feat"><div class="check">✓</div><div><div class="txt">Grade-up coaching</div><div class="sub">Specific tips for every flaw the AI spots</div></div></div>
+          </div>
+          <div class="plans">
+            <div class="plan active">
+              <div class="save-tag">SAVE 50%</div>
+              <div class="radio"></div>
+              <div class="info">
+                <div class="ttl">Annual</div>
+                <div class="sub">Auto-renews · $2.50 / month</div>
+              </div>
+              <div class="price">$29.99<span style="color:var(--text-3); font-size:11px; font-weight:600;">/yr</span></div>
+            </div>
+            <div class="plan">
+              <div class="radio"></div>
+              <div class="info">
+                <div class="ttl">Monthly</div>
+                <div class="sub">Auto-renews each month</div>
+              </div>
+              <div class="price">$4.99<span style="color:var(--text-3); font-size:11px; font-weight:600;">/mo</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="pay-cta-wrap">
+          <div class="pay-cta">Start Annual — $29.99</div>
+          <div class="pay-mini">
+            <a>Restore</a>
+            <span>Auto-renews · cancel anytime</span>
+            <a>Terms</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Save % is computed from real StoreKit prices in production (audit fix — was a hardcoded claim). "Auto-renewable subscription" disclosure visible above the fold. Restore Purchases reachable here and from Settings.</p>
+  </div>
+
+</section>
+
+<footer class="footer">
+  <div class="grid">
+    <div>
+      <h3>What changed (App Store fixes)</h3>
+      <p>Camera permission auto-requests on mount; "Go Back" pre-prompt removed (5.1.1(iv)). Pokemon refs scrubbed across all source: <code>pokemon-tcg.ts</code> deleted, demo cards (Charizard/Blastoise/Pikachu/Mewtwo) and <code>images.pokemontcg.io</code> URLs removed. "PSA" → "Grade" in user-visible labels; "Trainer Tips" → "Scanning Tips"; "Pokéball palette" → "Brand palette". Disclaimer added on every result.</p>
+    </div>
+    <div>
+      <h3>Design system</h3>
+      <p>Single saturated accent: mint <code>#34D9A0</code>. Gold <code>#FFC93C</code> reserved for Gem Mint reveals only. True-black canvas <code>#050507</code>. Inter font with stylistic-set 01 + cv11 alternates. Liquid-Glass surfaces (44 px blur, 180% saturation) for tab bar + sticky CTAs.</p>
+    </div>
+    <div>
+      <h3>Still TODO before resubmit</h3>
+      <p>Replace <code>src/assets/icon.png</code>, <code>splash.png</code>, <code>test-card.png</code> with non-trademarked artwork. Verify Supabase <code>delete_user_account</code> RPC fully purges + revokes Sign-in-with-Apple tokens. Compute paywall "save %" from live StoreKit prices instead of static text. Update App Store Connect metadata: remove any Pokemon mentions from app name / subtitle / keywords / screenshots / description.</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

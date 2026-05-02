@@ -5,6 +5,15 @@ import * as Updates from "expo-updates";
 import Stack from "expo-router/stack";
 import { useRouter, useSegments } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from "@expo-google-fonts/inter";
+import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from "@expo-google-fonts/instrument-serif";
+import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fonts/jetbrains-mono";
+import { useFonts } from "expo-font";
 import { ThemeProvider } from "@/components/theme-provider";
 import AuthProvider, { useAuth } from "@/components/auth-provider";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -72,7 +81,7 @@ function AuthGate({ onReady }: { onReady: () => void }) {
   // Handle PASSWORD_RECOVERY deep link
   useEffect(() => {
     if (!isSupabaseConfigured) return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string) => {
       if (event === "PASSWORD_RECOVERY") {
         router.push("/reset-password" as any);
       }
@@ -85,6 +94,19 @@ function AuthGate({ onReady }: { onReady: () => void }) {
 
 export default function Layout() {
   const [ready, setReady] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_700Bold,
+  });
+  // If a font fails to load, treat as "loaded" so we don't soft-lock the user
+  // on a black screen. They get system font fallback.
+  const fontsReady = fontsLoaded || !!fontError;
 
   // Check for OTA updates on launch
   useEffect(() => {
@@ -101,16 +123,23 @@ export default function Layout() {
   }, []);
 
   const handleReady = () => {
-    setReady(true);
-    SplashScreen.hideAsync();
+    if (fontsReady) {
+      setReady(true);
+      SplashScreen.hideAsync();
+    }
   };
+
+  // If fonts finish loading after auth resolves, hide splash anyway.
+  useEffect(() => {
+    if (fontsReady && ready) SplashScreen.hideAsync();
+  }, [fontsReady, ready]);
 
   return (
     <ThemeProvider>
       <AuthProvider>
         <AuthGate onReady={handleReady} />
-        {/* Black overlay hides the Stack contents until auth resolves */}
-        {!ready && (
+        {/* Black overlay hides the Stack contents until auth + fonts resolve */}
+        {(!ready || !fontsReady) && (
           <View
             style={{
               position: "absolute",
@@ -132,9 +161,12 @@ export default function Layout() {
           <Stack.Screen name="onboarding" options={{ animation: "slide_from_bottom" }} />
           <Stack.Screen name="forgot-password" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="reset-password" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
-          <Stack.Screen name="paywall" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="terms" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="privacy" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
+          <Stack.Screen name="paywall" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
+          <Stack.Screen name="streak" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
+          <Stack.Screen name="share" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
+          <Stack.Screen name="reveal" options={{ presentation: "transparentModal", animation: "fade", headerShown: false }} />
         </Stack>
       </AuthProvider>
     </ThemeProvider>

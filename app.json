@@ -16,7 +16,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.bsong.mintyyy",
-      "buildNumber": "39",
+      "buildNumber": "41",
       "supportsTablet": false,
       "splash": {
         "image": "./src/assets/splash.png",
@@ -24,9 +24,8 @@
         "backgroundColor": "#0A0A0C"
       },
       "infoPlist": {
-        "NSCameraUsageDescription": "Minty uses your camera to photograph trading cards for grading.",
-        "NSPhotoLibraryUsageDescription": "Minty accesses your photo library so you can select card images for grading.",
-        "NSPhotoLibraryAddUsageDescription": "Minty saves card photos to your library.",
+        "NSCameraUsageDescription": "Minty uses your camera so you can photograph a trading card and receive an AI-predicted grade estimate based on the photo.",
+        "NSPhotoLibraryUsageDescription": "Minty accesses your photo library so you can choose an existing card photo to grade.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -57,18 +56,17 @@
       "expo-web-browser",
       "@bacons/apple-colors",
       "expo-asset",
-      "react-native-iap",
       "expo-apple-authentication",
       [
         "expo-camera",
         {
-          "cameraPermission": "Minty uses your camera to photograph trading cards for grading."
+          "cameraPermission": "Minty uses your camera so you can photograph a trading card and receive an AI-predicted grade estimate based on the photo."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Minty accesses your photo library so you can select card images for grading."
+          "photosPermission": "Minty accesses your photo library so you can choose an existing card photo to grade."
         }
       ]
     ],

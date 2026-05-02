@@ -12,7 +12,7 @@ import { signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple } f
 import { useAuth } from "@/components/auth-provider";
 import { C, SHADOW } from "@/lib/theme";
 
-const DOT_COLORS = ["#FF4444", "#FFFFFF", "#FFD700"];
+const DOT_COLORS = ["#48E5B0", "#7AAEF0", "#F5C95A"];
 const FEATURES = [
   "AI-powered grade prediction",
   "Centering, corners, edges & surface analysis",
@@ -209,8 +209,8 @@ export default function LoginScreen() {
         {/* Hero */}
         <View style={{ alignItems: "center", paddingTop: 80, paddingBottom: 32, gap: 12 }}>
           {/* App Logo */}
-          <View style={{ width: 80, height: 80, borderRadius: 22, borderCurve: "continuous", overflow: "hidden", marginBottom: 4, boxShadow: SHADOW.card }}>
-            <Image source={require("@/assets/icon.png")} style={{ width: 80, height: 80 }} contentFit="cover" />
+          <View style={{ width: 64, height: 64, borderRadius: 18, borderCurve: "continuous", overflow: "hidden", marginBottom: 4, boxShadow: SHADOW.card }}>
+            <Image source={require("@/assets/icon.png")} style={{ width: 64, height: 64 }} contentFit="cover" />
           </View>
           <Text style={{ fontSize: 34, fontWeight: "900", color: C.text, letterSpacing: -1.2 }}>Minty</Text>
           <Text style={{ fontSize: 15, color: C.textSecondary, textAlign: "center", lineHeight: 22 }}>

@@ -58,12 +58,4 @@ export interface Profile {
   id: string;
   display_name: string | null;
   avatar_url: string | null;
-  scan_count_today: number;
-  last_scan_date: string | null;
-  is_pro: boolean;
-}
-
-export interface ScanLimitResult {
-  canScan: boolean;
-  scansRemaining: number;
 }

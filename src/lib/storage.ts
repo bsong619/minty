@@ -3,7 +3,6 @@ import { GradedCard } from "./types";
 
 const CARDS_KEY = "minty_history";
 const ONBOARDING_KEY = "minty_onboarding_seen";
-const SCAN_COUNT_KEY = "minty_daily_scans";
 
 export async function getCards(): Promise<GradedCard[]> {
   const raw = await AsyncStorage.getItem(CARDS_KEY);
@@ -39,29 +38,4 @@ export async function hasSeenOnboarding(): Promise<boolean> {
 
 export async function markOnboardingSeen(): Promise<void> {
   await AsyncStorage.setItem(ONBOARDING_KEY, "true");
-}
-
-export async function getDailyScans(): Promise<number> {
-  const raw = await AsyncStorage.getItem(SCAN_COUNT_KEY);
-  if (!raw) return 0;
-  const data = JSON.parse(raw);
-  const today = new Date().toDateString();
-  if (data.date !== today) return 0;
-  return data.count;
-}
-
-export async function incrementDailyScans(): Promise<number> {
-  const today = new Date().toDateString();
-  const raw = await AsyncStorage.getItem(SCAN_COUNT_KEY);
-  let count = 0;
-  if (raw) {
-    const data = JSON.parse(raw);
-    if (data.date === today) count = data.count;
-  }
-  count++;
-  await AsyncStorage.setItem(
-    SCAN_COUNT_KEY,
-    JSON.stringify({ date: today, count })
-  );
-  return count;
 }

@@ -10,9 +10,9 @@
 
 - All colors from `src/lib/theme.ts` — import `{ C, SHADOW }` from "@/lib/theme"
 - Never hardcode hex colors; always use the C object
-- Pokéball palette: red (#FF4444) + black (#0A0A0C) + white (#F5F5F7)
-- Primary: C.red (#FF4444) — brand, CTAs, links, active states, Pokéball accents
-- Premium: C.gold (#FFD700) — PSA 10, paywall CTA, tips numbers, analyzing scanner
+- Brand palette: red (#FF4444) + black (#0A0A0C) + white (#F5F5F7)
+- Primary: C.red (#FF4444) — brand, CTAs, links, active states
+- Premium: C.gold (#FFD700) — Gem Mint highlight, tips numbers, analyzing scanner
 - Background: C.bg (#0A0A0C) — true black
 - Surfaces: C.surface (#1A1A1E) — dark charcoal cards
 - Grade colors: 10=gold, 9=green, 7-8=blue, 5-6=orange, 1-4=red

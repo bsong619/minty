@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { View, Text, Pressable, useWindowDimensions, Alert } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { View, Text, Pressable, useWindowDimensions, Linking } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { setPendingImageUri, setPendingImageUris } from "@/lib/pending-scan";
@@ -80,31 +80,37 @@ export default function CameraScreen() {
     router.push("/(tabs)/(scan)/analyzing");
   };
 
+  // Auto-trigger the system permission prompt on mount. Apple 5.1.1(iv): no
+  // pre-prompt with opt-out — the user must always proceed to the OS dialog.
+  useEffect(() => {
+    if (permission && !permission.granted && permission.canAskAgain) {
+      requestPermission();
+    }
+  }, [permission?.granted, permission?.canAskAgain]);
+
   if (!permission) return <View style={{ flex: 1, backgroundColor: "#000" }} />;
 
   if (!permission.granted) {
+    if (permission.canAskAgain) {
+      return <View style={{ flex: 1, backgroundColor: "#000" }} />;
+    }
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", gap: 16, padding: 32 }}>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: C.text, textAlign: "center" }}>Camera Access Required</Text>
+        <Text style={{ fontSize: 18, fontWeight: "700", color: C.text, textAlign: "center" }}>Camera access is off</Text>
         <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: "center", lineHeight: 20 }}>
-          Minty needs camera access to photograph your cards for grading.
+          Minty uses your camera to photograph trading cards for grading. You can turn on camera access in Settings.
         </Text>
         <Pressable
-          onPress={async () => {
-            const result = await requestPermission();
-            if (!result.granted && !result.canAskAgain) {
-              Alert.alert("Camera Permission", "Please enable camera access in Settings > Minty > Camera.");
-            }
-          }}
+          onPress={() => Linking.openSettings()}
           style={({ pressed }) => ({
             paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14,
             backgroundColor: C.red, opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Text style={{ fontSize: 16, fontWeight: "600", color: "white" }}>Continue</Text>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: "white" }}>Open Settings</Text>
         </Pressable>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ fontSize: 14, color: C.textSecondary }}>Go Back</Text>
+          <Text style={{ fontSize: 14, color: C.textSecondary }}>Close</Text>
         </Pressable>
       </View>
     );

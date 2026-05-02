@@ -1,8 +1,19 @@
+import "react-native-get-random-values";
 import * as FileSystem from "expo-file-system/legacy";
 import { decode } from "base64-arraybuffer";
 import { supabase } from "./supabase";
-import { GradeResult, GradedCard } from "./types";
-import type { ScannedCard, ScanLimitResult } from "./database.types";
+import { GradeResult, GradedCard, Bucket } from "./types";
+import type { ScannedCard } from "./database.types";
+
+// Map a 0-1 PSA-10 likelihood into the user-facing bucket label.
+export function bucketFor(likelihood: number | null | undefined): Bucket {
+  if (likelihood == null) return "Below 9";
+  if (likelihood >= 0.85) return "Lock 10";
+  if (likelihood >= 0.65) return "Strong 10 candidate";
+  if (likelihood >= 0.40) return "Coin-flip 9/10";
+  if (likelihood >= 0.20) return "Likely 9";
+  return "Below 9";
+}
 
 function generateUUID(): string {
   const bytes = new Uint8Array(16);
@@ -12,8 +23,6 @@ function generateUUID(): string {
   const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
   return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
-
-const FREE_DAILY_LIMIT = 3;
 
 // --- Image Upload ---
 
@@ -98,26 +107,43 @@ export async function saveCompleteScan({
     edges_score: aiResult.subGrades?.edges ?? 5,
     surface_score: aiResult.subGrades?.surface ?? 5,
     centering_details: aiResult.centeringDetail ?? null,
-    corners_details: null,
-    edges_details: null,
-    surface_details: null,
+    corners_details: aiResult.cornersDetail ?? null,
+    edges_details: aiResult.edgesDetail ?? null,
+    surface_details: aiResult.surfaceDetail ?? null,
     grade_up_tips: aiResult.tips ?? [],
     is_favorite: false,
   };
-  // Persist TCG image URL if Claude returned one (requires tcg_image_url column in DB)
-  if (aiResult.tcgImageUrl) {
-    row.tcg_image_url = aiResult.tcgImageUrl;
-  }
+  // Optional v2 columns. We attempt to write them, but if the DB hasn't been
+  // migrated yet we'll retry without them rather than fail the whole save.
+  // See SECURITY.md for the migration SQL.
+  if (aiResult.psa10Likelihood != null)  row.psa10_likelihood = aiResult.psa10Likelihood;
+  if (aiResult.photoQuality)             row.photo_quality = aiResult.photoQuality;
+  if (aiResult.hardPassGate)             row.hard_pass_gate = aiResult.hardPassGate;
+  if (aiResult.disqualifyingFlaws?.length) row.disqualifying_flaws = aiResult.disqualifyingFlaws;
+  if (aiResult.obscuredRegions?.length)  row.obscured_regions = aiResult.obscuredRegions;
+  if (aiResult.tcgImageUrl)              row.tcg_image_url = aiResult.tcgImageUrl;
 
-  const { data, error } = await supabase
+  let data: any;
+  let { data: ok, error } = await supabase
     .from("scanned_cards")
     .insert(row)
     .select()
     .single();
+  data = ok;
+
+  // If the DB hasn't been migrated for the v2 columns yet, the insert will
+  // fail with "column ... does not exist". Strip optional columns and retry.
+  if (error && /column .* does not exist/i.test(error.message)) {
+    const fallback = { ...row };
+    for (const k of ["psa10_likelihood", "photo_quality", "hard_pass_gate", "disqualifying_flaws", "obscured_regions", "tcg_image_url"]) {
+      delete fallback[k];
+    }
+    const retry = await supabase.from("scanned_cards").insert(fallback).select().single();
+    data = retry.data;
+    error = retry.error;
+  }
+
   if (error) throw error;
-
-  await incrementScanCount(userId);
-
   return toGradedCard(data as ScannedCard);
 }
 
@@ -218,131 +244,24 @@ export async function deleteScannedCard(
   if (error) throw error;
 }
 
-// --- Scan limits (removed — app is free with unlimited scans) ---
-
-export async function checkScanLimit(
-  _userId: string
-): Promise<ScanLimitResult> {
-  return { canScan: true, scansRemaining: Infinity };
-}
-
-export async function incrementScanCount(_userId: string): Promise<void> {
-  // no-op — unlimited scans
-}
-
 // --- Demo / seed data ---
 
-// Stable IDs so we can check existence without duplicating
-const DEMO_CARDS = [
-  {
-    id: "00000000-demo-0000-0000-charizard001",
-    card_name: "Charizard",
-    card_set: "XY Evolutions",
-    card_number: "11/108",
-    card_year: "2016",
-    front_image_url: "https://images.pokemontcg.io/xy12/11_hires.png",
-    tcg_image_url: "https://images.pokemontcg.io/xy12/11_hires.png",
-    predicted_grade: 8,
-    confidence: "high",
-    centering_score: 8,
-    corners_score: 8,
-    edges_score: 9,
-    surface_score: 7,
-    centering_details: { leftRight: "55/45", topBottom: "54/46", passesThreshold: false },
-    grade_up_tips: [
-      "Light surface scratches on the holo are reducing your grade — store in a sleeve.",
-      "Centering is slightly off on the left border — be mindful when handling.",
-    ],
-  },
-  {
-    id: "00000000-demo-0000-0000-blastoise002",
-    card_name: "Blastoise",
-    card_set: "Base Set",
-    card_number: "2/102",
-    card_year: "1999",
-    front_image_url: "https://images.pokemontcg.io/base1/2_hires.png",
-    tcg_image_url: "https://images.pokemontcg.io/base1/2_hires.png",
-    predicted_grade: 6,
-    confidence: "medium",
-    centering_score: 6,
-    corners_score: 6,
-    edges_score: 7,
-    surface_score: 5,
-    centering_details: { leftRight: "60/40", topBottom: "58/42", passesThreshold: false },
-    grade_up_tips: [
-      "Corner wear is visible — consider grading sooner to lock in current condition.",
-      "Surface shows light play marks from handling without a sleeve.",
-    ],
-  },
-  {
-    id: "00000000-demo-0000-0000-pikachu00003",
-    card_name: "Pikachu",
-    card_set: "Base Set",
-    card_number: "58/102",
-    card_year: "1999",
-    front_image_url: "https://images.pokemontcg.io/base1/58_hires.png",
-    tcg_image_url: "https://images.pokemontcg.io/base1/58_hires.png",
-    predicted_grade: 9,
-    confidence: "high",
-    centering_score: 9,
-    corners_score: 9,
-    edges_score: 9,
-    surface_score: 9,
-    centering_details: { leftRight: "52/48", topBottom: "53/47", passesThreshold: true },
-    grade_up_tips: [
-      "Excellent condition — submit to PSA soon to maximize value.",
-    ],
-  },
-  {
-    id: "00000000-demo-0000-0000-mewtwo00004",
-    card_name: "Mewtwo",
-    card_set: "Base Set",
-    card_number: "10/102",
-    card_year: "1999",
-    front_image_url: "https://images.pokemontcg.io/base1/10_hires.png",
-    tcg_image_url: "https://images.pokemontcg.io/base1/10_hires.png",
-    predicted_grade: 7,
-    confidence: "medium",
-    centering_score: 7,
-    corners_score: 7,
-    edges_score: 8,
-    surface_score: 6,
-    centering_details: { leftRight: "57/43", topBottom: "55/45", passesThreshold: false },
-    grade_up_tips: [
-      "Holo surface has light scratches — store face-up in a rigid case.",
-      "Centering is slightly off; borderline for PSA 8.",
-    ],
-  },
-];
-
-export async function seedDemoCards(userId: string): Promise<void> {
-  for (const demo of DEMO_CARDS) {
-    const { data } = await supabase
-      .from("scanned_cards")
-      .select("id")
-      .eq("id", demo.id)
-      .maybeSingle();
-    if (data) continue; // Already seeded
-
-    await supabase.from("scanned_cards").insert({
-      ...demo,
-      user_id: userId,
-      is_favorite: false,
-    });
-  }
+// Demo seeding removed — collection starts empty. Kept as a no-op so existing
+// callers keep working without churn.
+export async function seedDemoCards(_userId: string): Promise<void> {
+  return;
 }
 
 // --- Conversion helper ---
 
 function toGradedCard(card: ScannedCard): GradedCard {
   const confidence = (card.confidence ?? "medium").toLowerCase();
-  const mapped =
+  const mapped: "High" | "Medium" | "Low" =
     confidence === "high" ? "High" : confidence === "low" ? "Low" : "Medium";
 
-  // Prefer the persisted TCG image URL; fall back to front_image_url if it's already TCG art
-  const tcgImageUrl =
-    (card as any).tcg_image_url ??
-    (card.front_image_url?.includes("pokemontcg.io") ? card.front_image_url : undefined);
+  const tcgImageUrl = (card as any).tcg_image_url ?? undefined;
+  const psa10Likelihood = (card as any).psa10_likelihood ?? null;
+  const photoQuality = ((card as any).photo_quality as "High" | "Medium" | "Low" | null) ?? mapped;
 
   return {
     id: card.id,
@@ -352,7 +271,10 @@ function toGradedCard(card: ScannedCard): GradedCard {
     timestamp: new Date(card.scanned_at).getTime(),
     result: {
       overallGrade: card.predicted_grade,
-      confidence: mapped as "High" | "Medium" | "Low",
+      psa10Likelihood,
+      bucket: bucketFor(psa10Likelihood),
+      photoQuality,
+      confidence: mapped,
       subGrades: {
         centering: card.centering_score,
         corners: card.corners_score,
@@ -364,6 +286,12 @@ function toGradedCard(card: ScannedCard): GradedCard {
         topBottom: "N/A",
         passesThreshold: false,
       },
+      cornersDetail: (card as any).corners_details ?? undefined,
+      edgesDetail: (card as any).edges_details ?? undefined,
+      surfaceDetail: (card as any).surface_details ?? undefined,
+      hardPassGate: (card as any).hard_pass_gate ?? undefined,
+      disqualifyingFlaws: (card as any).disqualifying_flaws ?? undefined,
+      obscuredRegions: (card as any).obscured_regions ?? undefined,
       tips: card.grade_up_tips ?? [],
       cardName: card.card_name,
       cardSet: card.card_set,
