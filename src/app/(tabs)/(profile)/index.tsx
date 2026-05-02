@@ -89,8 +89,30 @@ export default function ProfileScreen() {
           style: "destructive",
           onPress: async () => {
             try {
+              // Prefer the delete-account edge function: it revokes the user's
+              // Sign-in-with-Apple authorization (Apple 5.1.1(v)) THEN purges
+              // their data. Falls back to the RPC if the function isn't
+              // deployed yet (covers the period before Apple secrets are set).
               if (userId && supabase) {
-                await supabase.rpc("delete_user_account");
+                const { data: { session } } = await supabase.auth.getSession();
+                const accessToken = session?.access_token;
+                const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+                let succeeded = false;
+                if (accessToken && baseUrl) {
+                  try {
+                    const res = await fetch(`${baseUrl}/functions/v1/delete-account`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+                    });
+                    if (res.ok) succeeded = true;
+                  } catch {}
+                }
+                if (!succeeded) {
+                  // Fallback path: data-only purge via RPC. SIWA users will
+                  // still need their Apple authorization revoked manually
+                  // (Settings → Apple ID → Apps Using Your Apple ID).
+                  await supabase.rpc("delete_user_account");
+                }
               }
               await AsyncStorage.multiRemove(["minty_history", "minty_onboarding_seen", AUTH_FLOW_KEY]);
               signOut().catch(() => {});
