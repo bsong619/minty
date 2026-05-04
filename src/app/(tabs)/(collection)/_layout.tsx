@@ -12,15 +12,7 @@ export default function CollectionLayout() {
         animation: "slide_from_right",
       }}
     >
-      <Stack.Screen
-        name="index"
-        options={{
-          title: "Collection",
-          headerTitleStyle: { color: "#F5F5F7" },
-          headerTransparent: process.env.EXPO_OS === "ios",
-          headerBlurEffect: process.env.EXPO_OS === "ios" ? "dark" : undefined,
-        }}
-      />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen
         name="details"
         options={{ title: "Card Details", headerTintColor: "#F5F5F7" }}

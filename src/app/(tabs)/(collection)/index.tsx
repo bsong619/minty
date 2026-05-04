@@ -66,7 +66,7 @@ export default function VaultScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 100, paddingTop: 6 }}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 100, paddingTop: insets.top + 6 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.mint} />}
       showsVerticalScrollIndicator={false}
     >
@@ -135,47 +135,75 @@ export default function VaultScreen() {
           )}
         </View>
       ) : (
-        <View style={{ paddingHorizontal: PADDING, paddingTop: 16, flexDirection: "row", flexWrap: "wrap", gap: GAP }}>
-          {filtered.map((card) => {
-            const grade = card.result.overallGrade;
-            const color = getGradeColor(grade);
-            return (
-              <Pressable
-                key={card.id}
-                onPress={() => router.push({ pathname: "/(tabs)/(collection)/details", params: { cardId: card.id } } as any)}
-                style={({ pressed }) => ({ width: cardWidth, opacity: pressed ? 0.85 : 1 })}
-              >
-                <View style={{ borderRadius: 10, overflow: "hidden", position: "relative" }}>
-                  {card.imageUri ? (
-                    <Image source={{ uri: card.imageUri }} style={{ width: cardWidth, height: cardHeight, borderRadius: 10 }} contentFit="cover" />
-                  ) : (
-                    <CardArt kind={artKindFor(card.result.cardName)} width={cardWidth} height={cardHeight} />
-                  )}
-                  {grade >= 9.5 && <HoloFoil intensity={0.35} />}
-                  <View style={{
-                    position: "absolute", top: 5, right: 5,
-                    width: 28, height: 28, borderRadius: 14,
-                    backgroundColor: "rgba(11,13,14,0.85)",
-                    borderWidth: 1, borderColor: `${color}80`,
-                    justifyContent: "center", alignItems: "center",
-                  }}>
-                    <Text style={{ fontFamily: FONT.display, fontSize: 14, color, lineHeight: 14 }}>{grade}</Text>
-                  </View>
-                  {card.favorite && (
+        <>
+          <View style={{ paddingHorizontal: PADDING, paddingTop: 16, flexDirection: "row", flexWrap: "wrap", gap: GAP }}>
+            {filtered.map((card) => {
+              const grade = card.result.overallGrade;
+              const color = getGradeColor(grade);
+              return (
+                <Pressable
+                  key={card.id}
+                  onPress={() => router.push({ pathname: "/(tabs)/(collection)/details", params: { cardId: card.id } } as any)}
+                  style={({ pressed }) => ({ width: cardWidth, opacity: pressed ? 0.85 : 1 })}
+                >
+                  <View style={{ borderRadius: 10, overflow: "hidden", position: "relative" }}>
+                    {card.imageUri ? (
+                      <Image source={{ uri: card.imageUri }} style={{ width: cardWidth, height: cardHeight, borderRadius: 10 }} contentFit="cover" />
+                    ) : (
+                      <CardArt kind={artKindFor(card.result.cardName)} width={cardWidth} height={cardHeight} />
+                    )}
+                    {grade >= 9.5 && <HoloFoil intensity={0.35} />}
                     <View style={{
-                      position: "absolute", top: 5, left: 5,
-                      width: 22, height: 22, borderRadius: 11,
+                      position: "absolute", top: 5, right: 5,
+                      width: 28, height: 28, borderRadius: 14,
                       backgroundColor: "rgba(11,13,14,0.85)",
+                      borderWidth: 1, borderColor: `${color}80`,
                       justifyContent: "center", alignItems: "center",
                     }}>
-                      <Icon name="heart" size={12} color={C.mint} fill={C.mint} strokeWidth={2} />
+                      <Text style={{ fontFamily: FONT.display, fontSize: 14, color, lineHeight: 14 }}>{grade}</Text>
                     </View>
-                  )}
+                    {card.favorite && (
+                      <View style={{
+                        position: "absolute", top: 5, left: 5,
+                        width: 22, height: 22, borderRadius: 11,
+                        backgroundColor: "rgba(11,13,14,0.85)",
+                        justifyContent: "center", alignItems: "center",
+                      }}>
+                        <Icon name="heart" size={12} color={C.mint} fill={C.mint} strokeWidth={2} />
+                      </View>
+                    )}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+          {filter === "All" && cards.length > 0 && cards.length < 6 && (
+            <View style={{ paddingHorizontal: PADDING, marginTop: 32 }}>
+              <View style={{
+                borderRadius: 16, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface,
+                padding: 18, alignItems: "center", gap: 10,
+              }}>
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: C.mintFaint, justifyContent: "center", alignItems: "center" }}>
+                  <Icon name="sparkles" size={20} color={C.mint} strokeWidth={1.8} />
                 </View>
-              </Pressable>
-            );
-          })}
-        </View>
+                <Text style={{ fontSize: 15, fontFamily: FONT.uiBold, color: C.text, textAlign: "center" }}>Keep building your vault</Text>
+                <Text style={{ fontSize: 12, color: C.textSecondary, textAlign: "center", lineHeight: 18, maxWidth: 280 }}>
+                  Scan more cards to unlock Mint+ filters and gem highlights.
+                </Text>
+                <Pressable
+                  onPress={() => router.push("/(tabs)/(scan)" as any)}
+                  style={({ pressed }) => ({
+                    marginTop: 4, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 10,
+                    borderWidth: 1, borderColor: C.mint, backgroundColor: "transparent",
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <Text style={{ fontFamily: FONT.uiBold, fontSize: 13, color: C.mint }}>Scan a card</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+        </>
       )}
     </ScrollView>
   );

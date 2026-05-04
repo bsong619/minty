@@ -26,13 +26,13 @@ function WebTabsLayout() {
           : { tabBarPosition: "bottom" }),
       }}
     >
-      <WebTabs.Screen name="(scan)" options={{
-        title: "Scan",
-        tabBarIcon: (props) => <MaterialIcons {...props} name="center-focus-strong" />,
-      }} />
       <WebTabs.Screen name="(collection)" options={{
         title: "Vault",
         tabBarIcon: (props) => <MaterialIcons {...props} name="auto-awesome-mosaic" />,
+      }} />
+      <WebTabs.Screen name="(scan)" options={{
+        title: "Scan",
+        tabBarIcon: (props) => <MaterialIcons {...props} name="center-focus-strong" />,
       }} />
       <WebTabs.Screen name="(profile)" options={{
         title: "Profile",
@@ -45,21 +45,21 @@ function WebTabsLayout() {
 function NativeTabsLayout() {
   return (
     <NativeTabs>
-      <NativeTabs.Trigger name="(scan)">
-        <NativeTabs.Trigger.Label>Scan</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          {...Platform.select({
-            ios: { sf: { default: "viewfinder", selected: "viewfinder" } },
-            default: { src: <NativeTabs.Trigger.VectorIcon family={MaterialIcons} name="center-focus-strong" /> },
-          })}
-        />
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(collection)">
         <NativeTabs.Trigger.Label>Vault</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           {...Platform.select({
             ios: { sf: { default: "rectangle.stack", selected: "rectangle.stack.fill" } },
             default: { src: <NativeTabs.Trigger.VectorIcon family={MaterialIcons} name="auto-awesome-mosaic" /> },
+          })}
+        />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(scan)">
+        <NativeTabs.Trigger.Label>Scan</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          {...Platform.select({
+            ios: { sf: { default: "viewfinder", selected: "viewfinder" } },
+            default: { src: <NativeTabs.Trigger.VectorIcon family={MaterialIcons} name="center-focus-strong" /> },
           })}
         />
       </NativeTabs.Trigger>

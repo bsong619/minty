@@ -163,7 +163,7 @@ export default function ProfileScreen() {
         <View style={{ width: 1, backgroundColor: C.borderSubtle }} />
         <Stat label="GEMS" value={String(stats.gems)} accent={C.gold} />
         <View style={{ width: 1, backgroundColor: C.borderSubtle }} />
-        <Stat label="AVG" value={stats.avg > 0 ? stats.avg.toFixed(1) : "—"} accent={C.mint} />
+        <Stat label="AVG" value={stats.avg > 0 ? stats.avg.toFixed(1) : "—"} accent={stats.avg > 0 ? C.mint : C.textTertiary} />
       </View>
 
       {/* Pro: upsell hero (free) or manage-subscription row (subscribers). */}
@@ -219,17 +219,6 @@ export default function ProfileScreen() {
         </Pressable>
       )}
 
-      {/* Account */}
-      <Section title="ACCOUNT">
-        <Row icon="user" label={isAnonymous ? "Sign in to save your collection" : "Signed in"} onPress={isAnonymous ? () => rootRouter.push("/login" as any) : undefined} />
-        <Divider />
-        <Row icon="logout" label="Sign Out" onPress={() => {
-          AsyncStorage.removeItem(AUTH_FLOW_KEY).catch(() => {});
-          signOut().catch(() => {});
-          rootRouter.replace("/login" as any);
-        }} destructive />
-      </Section>
-
       {/* General */}
       <Section title="GENERAL">
         <Row icon="info" label="How to get the best grade" onPress={() => AsyncStorage.removeItem("minty_onboarding_seen").then(() => router.push("/onboarding" as any))} />
@@ -250,6 +239,34 @@ export default function ProfileScreen() {
         <Divider />
         <Row icon="logout" label="Delete Account" onPress={handleDeleteAccount} destructive />
       </Section>
+
+      {/* Standalone sign-in / sign-out button */}
+      {isAnonymous ? (
+        <Pressable
+          onPress={() => rootRouter.push("/login" as any)}
+          style={({ pressed }) => ({
+            alignSelf: "center", paddingVertical: 12, paddingHorizontal: 22, borderRadius: 12,
+            borderWidth: 1, borderColor: C.mint, backgroundColor: "transparent",
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Text style={{ fontFamily: FONT.uiBold, fontSize: 14, color: C.mint }}>Sign in to save your collection</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={() => {
+            AsyncStorage.removeItem(AUTH_FLOW_KEY).catch(() => {});
+            signOut().catch(() => {});
+            rootRouter.replace("/login" as any);
+          }}
+          style={({ pressed }) => ({
+            alignSelf: "center", paddingVertical: 12, paddingHorizontal: 22, borderRadius: 12,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text style={{ fontFamily: FONT.uiBold, fontSize: 14, color: C.danger }}>Sign Out</Text>
+        </Pressable>
+      )}
 
       <Text style={{ fontSize: 11, color: C.textDisabled, textAlign: "center", lineHeight: 16, paddingHorizontal: 16 }}>
         Minty is not affiliated with any professional grading service.{"\n"}Grade predictions are AI estimates only.

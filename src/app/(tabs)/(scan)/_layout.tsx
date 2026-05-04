@@ -12,15 +12,7 @@ export default function ScanLayout() {
         animation: "slide_from_right",
       }}
     >
-      <Stack.Screen
-        name="index"
-        options={{
-          title: "Minty",
-          headerTitleStyle: { color: "#F5F5F7" },
-          headerTransparent: process.env.EXPO_OS === "ios",
-          headerBlurEffect: process.env.EXPO_OS === "ios" ? "dark" : undefined,
-        }}
-      />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen
         name="camera"
         options={{ title: "", headerShown: false, animation: "fade", presentation: "fullScreenModal" }}
@@ -29,10 +21,7 @@ export default function ScanLayout() {
         name="analyzing"
         options={{ headerShown: false, animation: "fade", presentation: "fullScreenModal" }}
       />
-      <Stack.Screen
-        name="results"
-        options={{ title: "Grade Results", headerTintColor: "#F5F5F7" }}
-      />
+      <Stack.Screen name="results" options={{ headerShown: false }} />
     </Stack>
   );
 }
