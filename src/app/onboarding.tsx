@@ -42,7 +42,7 @@ const STEPS = [
     description:
       "Get your predicted grade with a full breakdown — centering, corners, edges, surface — plus tips to level up.",
     tips: [
-      "Grade as many cards as you want — it's free",
+      "5 free grades a day — Pro unlocks unlimited",
       "Save your best pulls to favorites",
       "Use tips to decide which cards are worth grading",
     ],

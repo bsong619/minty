@@ -34,10 +34,6 @@ function WebTabsLayout() {
         title: "Vault",
         tabBarIcon: (props) => <MaterialIcons {...props} name="auto-awesome-mosaic" />,
       }} />
-      <WebTabs.Screen name="(trends)" options={{
-        title: "Trends",
-        tabBarIcon: (props) => <MaterialIcons {...props} name="trending-up" />,
-      }} />
       <WebTabs.Screen name="(profile)" options={{
         title: "Profile",
         tabBarIcon: (props) => <MaterialIcons {...props} name="person-outline" />,
@@ -64,15 +60,6 @@ function NativeTabsLayout() {
           {...Platform.select({
             ios: { sf: { default: "rectangle.stack", selected: "rectangle.stack.fill" } },
             default: { src: <NativeTabs.Trigger.VectorIcon family={MaterialIcons} name="auto-awesome-mosaic" /> },
-          })}
-        />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="(trends)">
-        <NativeTabs.Trigger.Label>Trends</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          {...Platform.select({
-            ios: { sf: { default: "chart.line.uptrend.xyaxis", selected: "chart.line.uptrend.xyaxis" } },
-            default: { src: <NativeTabs.Trigger.VectorIcon family={MaterialIcons} name="trending-up" /> },
           })}
         />
       </NativeTabs.Trigger>
