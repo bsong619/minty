@@ -356,9 +356,10 @@ function printReport(rep: ReturnType<typeof buildReport>) {
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// Main (wrapped in async fn so this runs under both CJS and ESM resolution)
 // ---------------------------------------------------------------------------
 
+async function main() {
 const t0 = Date.now();
 console.log(
   `Loading up to ${TARGET} samples${ONLY_GRADER ? ` (grader=${ONLY_GRADER})` : ""}...`,
@@ -457,3 +458,9 @@ writeFileSync(
   ),
 );
 console.log(`\nWrote detailed results to ${outPath}`);
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
