@@ -217,7 +217,10 @@ async function gradeWithClaude(imagePath: string): Promise<GradeOutput> {
       systemPrompt: SYSTEM_PROMPT,
       allowedTools: ["Read"],
       model: "claude-sonnet-4-6",
-      maxTurns: 2,
+      // 4 turns: Read tool call, tool result, optional follow-up, final
+      // response. 2 was too tight — model frequently emits an interim
+      // observation pass before the final JSON.
+      maxTurns: 4,
       // cwd doesn't need to be the repo — we use absolute paths.
       cwd: tmpdir(),
     },
