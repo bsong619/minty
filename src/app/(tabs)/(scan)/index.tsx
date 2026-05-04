@@ -97,7 +97,7 @@ export default function ScanScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 100, paddingTop: insets.top + 6 }}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 24, paddingTop: insets.top + 6 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}

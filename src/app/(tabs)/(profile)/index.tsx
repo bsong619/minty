@@ -141,7 +141,7 @@ export default function ProfileScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: insets.bottom + 100, paddingTop: 12 }}
+      contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: insets.bottom + 24, paddingTop: 12 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Profile header */}

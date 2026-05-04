@@ -114,7 +114,7 @@ export default function ResultsScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingTop: insets.top + 6, paddingBottom: insets.bottom + 100 }}
+      contentContainerStyle={{ paddingTop: insets.top + 6, paddingBottom: insets.bottom + 24 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}

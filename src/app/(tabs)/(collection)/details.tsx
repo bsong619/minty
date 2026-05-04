@@ -58,7 +58,7 @@ export default function DetailsScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 100 }}
+      contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 24 }}
     >
       {/* Hero */}
       <View style={{ alignItems: "center", gap: 16, paddingVertical: 8 }}>
