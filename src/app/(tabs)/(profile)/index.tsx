@@ -166,8 +166,26 @@ export default function ProfileScreen() {
         <Stat label="AVG" value={stats.avg > 0 ? stats.avg.toFixed(1) : "—"} accent={C.mint} />
       </View>
 
-      {/* Pro upsell — v2 hero card. Hidden for active Pro subscribers. */}
-      {!quota.isPro && (
+      {/* Pro: upsell hero (free) or manage-subscription row (subscribers). */}
+      {quota.isPro ? (
+        <Pressable
+          onPress={() => router.push("/customer-center" as any)}
+          style={({ pressed }) => ({
+            flexDirection: "row", alignItems: "center", gap: 12,
+            backgroundColor: C.surface, borderWidth: 1, borderColor: C.mintFaint,
+            borderRadius: 16, padding: 14, opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: C.mintFaint, justifyContent: "center", alignItems: "center" }}>
+            <Icon name="crown" size={20} color={C.mint} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, fontFamily: FONT.uiBold, color: C.text }}>Minty Pro · active</Text>
+            <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>Manage subscription</Text>
+          </View>
+          <Icon name="chevR" size={18} color={C.textTertiary} />
+        </Pressable>
+      ) : (
         <Pressable onPress={() => router.push("/paywall" as any)} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
           <View style={{ position: "relative", overflow: "hidden", borderRadius: 16, borderWidth: 1, borderColor: C.mintFaint }}>
             <LinearGradient
@@ -215,8 +233,6 @@ export default function ProfileScreen() {
       {/* General */}
       <Section title="GENERAL">
         <Row icon="info" label="How to get the best grade" onPress={() => AsyncStorage.removeItem("minty_onboarding_seen").then(() => router.push("/onboarding" as any))} />
-        <Divider />
-        <Row icon="flame" label="Streak" onPress={() => router.push("/streak" as any)} />
         <Divider />
         <Row icon="info" label="App Version" value="1.0.0" />
       </Section>
