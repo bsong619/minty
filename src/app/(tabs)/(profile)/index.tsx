@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter, router as rootRouter } from "expo-router";
+import { useRouter, router as rootRouter, useFocusEffect } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/components/auth-provider";
 import { AUTH_FLOW_KEY } from "@/app/_layout";
@@ -10,7 +11,8 @@ import { getScannedCards } from "@/lib/card-service";
 import { getCards } from "@/lib/storage";
 import { GradedCard } from "@/lib/types";
 import { Icon, type IconName } from "@/components/icon";
-import { C, FONT } from "@/lib/theme";
+import { C, FONT, SHADOW } from "@/lib/theme";
+import { getQuota, FREE_DAILY_LIMIT, type QuotaSnapshot } from "@/lib/scan-quota";
 
 function Row({ icon, label, value, onPress, destructive }: { icon: IconName; label: string; value?: string; onPress?: () => void; destructive?: boolean }) {
   return (
@@ -53,6 +55,13 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { userEmail, isAnonymous, signOut, userId } = useAuth();
   const [stats, setStats] = useState({ scans: 0, gems: 0, avg: 0 });
+  const [quota, setQuota] = useState<QuotaSnapshot>({ used: 0, limit: FREE_DAILY_LIMIT, remaining: FREE_DAILY_LIMIT, isPro: false });
+
+  useFocusEffect(
+    useCallback(() => {
+      getQuota().then(setQuota);
+    }, [])
+  );
 
   useEffect(() => {
     (async () => {
@@ -157,24 +166,40 @@ export default function ProfileScreen() {
         <Stat label="AVG" value={stats.avg > 0 ? stats.avg.toFixed(1) : "—"} accent={C.mint} />
       </View>
 
-      {/* Pro upsell */}
-      <Pressable
-        onPress={() => router.push("/paywall" as any)}
-        style={({ pressed }) => ({
-          flexDirection: "row", alignItems: "center", gap: 12,
-          backgroundColor: C.surface, borderWidth: 1, borderColor: C.mintFaint,
-          borderRadius: 16, padding: 14, opacity: pressed ? 0.85 : 1,
-        })}
-      >
-        <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: C.mintFaint, justifyContent: "center", alignItems: "center" }}>
-          <Icon name="crown" size={20} color={C.mint} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 14, fontFamily: FONT.uiBold, color: C.text }}>Try Minty Pro</Text>
-          <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>Unlimited scans · live market data</Text>
-        </View>
-        <Icon name="chevR" size={18} color={C.textTertiary} />
-      </Pressable>
+      {/* Pro upsell — v2 hero card. Hidden for active Pro subscribers. */}
+      {!quota.isPro && (
+        <Pressable onPress={() => router.push("/paywall" as any)} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
+          <View style={{ position: "relative", overflow: "hidden", borderRadius: 16, borderWidth: 1, borderColor: C.mintFaint }}>
+            <LinearGradient
+              colors={[`${C.mint}38`, `${C.gold}26`]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ padding: 16 }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <Text style={{ fontSize: 14 }}>✦</Text>
+                <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.mint, letterSpacing: 1.5 }}>MINTY PRO</Text>
+              </View>
+              <Text style={{ fontFamily: FONT.display, fontSize: 22, color: C.text, lineHeight: 24, letterSpacing: -0.5, marginBottom: 4 }}>
+                Unlock unlimited scans
+              </Text>
+              <Text style={{ fontSize: 12, color: C.textSecondary, lineHeight: 16, maxWidth: 260 }}>
+                You&apos;ve used {quota.used} of {quota.limit} free scans today. Upgrade to keep grading without limits.
+              </Text>
+              <View style={{
+                marginTop: 12, alignSelf: "flex-start",
+                flexDirection: "row", alignItems: "center", gap: 6,
+                paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10,
+                backgroundColor: C.mint,
+                ...({ boxShadow: SHADOW.glow } as any),
+              }}>
+                <Text style={{ fontFamily: FONT.uiBold, fontSize: 13, color: C.onMint }}>Get more scans</Text>
+                <Icon name="arrowR" size={13} color={C.onMint} strokeWidth={2.5} />
+              </View>
+            </LinearGradient>
+          </View>
+        </Pressable>
+      )}
 
       {/* Account */}
       <Section title="ACCOUNT">

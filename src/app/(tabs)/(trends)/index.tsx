@@ -10,6 +10,7 @@ import { getCards } from "@/lib/storage";
 import { GradedCard } from "@/lib/types";
 import { CardArt, artKindFor } from "@/components/card-art";
 import { C, FONT } from "@/lib/theme";
+import { fetchComps } from "@/lib/comps-service";
 
 const HORIZ = 20;
 const PERIODS = ["1W", "1M", "3M", "1Y", "ALL"] as const;
@@ -20,6 +21,8 @@ export default function TrendsScreen() {
   const { userId } = useAuth();
   const [cards, setCards] = useState<GradedCard[]>([]);
   const [period, setPeriod] = useState<typeof PERIODS[number]>("1M");
+  // cardId → median comp (USD). Falls back to estValueFor() when missing.
+  const [compValues, setCompValues] = useState<Record<string, number>>({});
 
   useEffect(() => {
     (async () => {
@@ -30,11 +33,48 @@ export default function TrendsScreen() {
     })();
   }, [userId]);
 
-  // Placeholder portfolio math — replace with real market data once integrated.
-  const totalValue = cards.reduce((sum, c) => sum + estValueFor(c), 0);
-  const monthChange = Math.round(totalValue * 0.066);
-  const monthPct = totalValue > 0 ? 6.6 : 0;
-  const topMovers = cards.slice(0, 3);
+  useEffect(() => {
+    if (cards.length === 0) return;
+    let cancelled = false;
+    // Fetch comps for the most recent N cards only — rate limit is 60/hr per
+    // user and we don't want to burn the budget on a portfolio open. The
+    // comps-service cache makes this cheap on subsequent opens.
+    const targets = cards
+      .filter((c) => c.result.overallGrade >= 7)
+      .slice(0, 20);
+
+    (async () => {
+      // Concurrency 4 — eBay tolerates parallel calls fine, this just keeps
+      // us off the rate-limit ceiling.
+      const queue = [...targets];
+      const next: Record<string, number> = {};
+      async function worker() {
+        while (queue.length > 0) {
+          const c = queue.shift()!;
+          try {
+            const r = await fetchComps({
+              cardName: c.result.cardName,
+              cardSet: c.result.cardSet,
+              cardYear: c.result.cardYear,
+              cardNumber: c.result.cardNumber,
+              grade: Math.floor(c.result.overallGrade),
+            });
+            if (r.median != null) next[c.id] = r.median;
+          } catch { /* silent — fall back to placeholder for this card */ }
+        }
+      }
+      await Promise.all([worker(), worker(), worker(), worker()]);
+      if (!cancelled) setCompValues((prev) => ({ ...prev, ...next }));
+    })();
+
+    return () => { cancelled = true; };
+  }, [cards]);
+
+  function valueFor(c: GradedCard): number {
+    return compValues[c.id] ?? estValueFor(c);
+  }
+
+  const totalValue = Math.round(cards.reduce((sum, c) => sum + valueFor(c), 0));
 
   return (
     <ScrollView
@@ -55,12 +95,9 @@ export default function TrendsScreen() {
           <Text style={{ fontFamily: FONT.monoBold, fontSize: 9, color: C.textTertiary, letterSpacing: 1 }}>PORTFOLIO VALUE</Text>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, marginTop: 4 }}>
             <Text style={{ fontFamily: FONT.display, fontSize: 36, color: C.text, lineHeight: 36, letterSpacing: -1 }}>${totalValue.toLocaleString()}</Text>
-            {monthChange > 0 && (
-              <Text style={{ fontSize: 13, color: C.mint, fontFamily: FONT.uiBold }}>↑ +${monthChange.toLocaleString()}</Text>
-            )}
           </View>
           {totalValue > 0 ? (
-            <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>+{monthPct.toFixed(1)}% this month</Text>
+            <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>Median active asks · eBay</Text>
           ) : (
             <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>Scan cards to start tracking value</Text>
           )}
@@ -137,35 +174,42 @@ export default function TrendsScreen() {
         </View>
       </View>
 
-      {/* Top movers */}
-      {topMovers.length > 0 && (
-        <View style={{ paddingHorizontal: HORIZ, paddingTop: 16 }}>
-          <Text style={{ fontSize: 14, fontFamily: FONT.uiBold, color: C.text, marginBottom: 10 }}>Top movers in your vault</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {topMovers.map((c, i) => {
-              const change = i === 2 ? "↓ -3.2%" : i === 0 ? "↑ +18%" : "↑ +12%";
-              const changeColor = i === 2 ? C.danger : C.mint;
-              return (
-                <Pressable
-                  key={c.id}
-                  onPress={() => router.push({ pathname: "/(tabs)/(collection)/details", params: { cardId: c.id } } as any)}
-                  style={{ flex: 1, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 10 }}
-                >
-                  <View style={{ borderRadius: 6, overflow: "hidden", marginBottom: 8 }}>
-                    {c.imageUri ? (
-                      <Image source={{ uri: c.imageUri }} style={{ width: "100%", height: 70, borderRadius: 6 }} contentFit="cover" />
-                    ) : (
-                      <CardArt kind={artKindFor(c.result.cardName)} width={96} height={70} />
-                    )}
-                  </View>
-                  <Text numberOfLines={1} style={{ fontSize: 10, color: C.textSecondary }}>{c.result.cardName}</Text>
-                  <Text style={{ fontFamily: FONT.monoBold, fontSize: 11, color: changeColor, marginTop: 2 }}>{change}</Text>
-                </Pressable>
-              );
-            })}
+      {/* Top by value — sorted by comp median (falls back to placeholder when no comp). */}
+      {cards.length > 0 && (() => {
+        const top = [...cards]
+          .sort((a, b) => valueFor(b) - valueFor(a))
+          .slice(0, 3);
+        return (
+          <View style={{ paddingHorizontal: HORIZ, paddingTop: 16 }}>
+            <Text style={{ fontSize: 14, fontFamily: FONT.uiBold, color: C.text, marginBottom: 10 }}>Top value in your vault</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {top.map((c) => {
+                const v = valueFor(c);
+                const hasReal = compValues[c.id] != null;
+                return (
+                  <Pressable
+                    key={c.id}
+                    onPress={() => router.push({ pathname: "/(tabs)/(collection)/details", params: { cardId: c.id } } as any)}
+                    style={{ flex: 1, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 10 }}
+                  >
+                    <View style={{ borderRadius: 6, overflow: "hidden", marginBottom: 8 }}>
+                      {c.imageUri ? (
+                        <Image source={{ uri: c.imageUri }} style={{ width: "100%", height: 70, borderRadius: 6 }} contentFit="cover" />
+                      ) : (
+                        <CardArt kind={artKindFor(c.result.cardName)} width={96} height={70} />
+                      )}
+                    </View>
+                    <Text numberOfLines={1} style={{ fontSize: 10, color: C.textSecondary }}>{c.result.cardName}</Text>
+                    <Text style={{ fontFamily: FONT.monoBold, fontSize: 11, color: hasReal ? C.mint : C.textTertiary, marginTop: 2 }}>
+                      ${Math.round(v).toLocaleString()}{hasReal ? "" : " est"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </View>
-      )}
+        );
+      })()}
     </ScrollView>
   );
 }

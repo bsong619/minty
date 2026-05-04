@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, Linking } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -13,6 +13,7 @@ import { HoloFoil } from "@/components/holo-foil";
 import { Icon } from "@/components/icon";
 import { C, FONT, SHADOW } from "@/lib/theme";
 import { consumePendingResultImages } from "@/lib/pending-result";
+import { fetchComps, formatCompPrice, CompsResult } from "@/lib/comps-service";
 
 const TIER_LABEL: Record<string, string> = {
   "Lock 10": "Gem Mint",
@@ -29,6 +30,8 @@ export default function ResultsScreen() {
   const [card, setCard] = useState<GradedCard | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [{ imageUri: localImageUri }] = useState(() => consumePendingResultImages());
+  const [comps, setComps] = useState<CompsResult | null>(null);
+  const [compsLoading, setCompsLoading] = useState(false);
 
   useEffect(() => {
     setLoadError(false);
@@ -52,6 +55,26 @@ export default function ResultsScreen() {
       getCards().then((cards) => onLoaded(cards.find((c) => c.id === cardId) ?? null)).catch(() => setLoadError(true));
     }
   }, [cardId, userId, router]);
+
+  useEffect(() => {
+    if (!card) return;
+    // Skip comp lookup for low grades — the eBay slab market for PSA 1–6
+    // is thin enough that the median is noise, not signal.
+    if (card.result.overallGrade < 7) return;
+    let cancelled = false;
+    setCompsLoading(true);
+    fetchComps({
+      cardName: card.result.cardName,
+      cardSet: card.result.cardSet,
+      cardYear: card.result.cardYear,
+      cardNumber: card.result.cardNumber,
+      grade: Math.floor(card.result.overallGrade),
+    })
+      .then((c) => { if (!cancelled) setComps(c); })
+      .catch(() => { /* silently hide block */ })
+      .finally(() => { if (!cancelled) setCompsLoading(false); });
+    return () => { cancelled = true; };
+  }, [card]);
 
   if (loadError) {
     return (
@@ -169,6 +192,75 @@ export default function ResultsScreen() {
           })}
         </View>
       </View>
+
+      {/* Active listings — eBay Browse API. Asking prices, not sold comps. */}
+      {(compsLoading || (comps && comps.count > 0)) && (
+        <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.textTertiary, letterSpacing: 1.5 }}>
+              ACTIVE LISTINGS · GRADE {Math.floor(grade)}
+            </Text>
+            {comps && comps.count > 0 && (
+              <Text style={{ fontFamily: FONT.mono, fontSize: 9, color: C.textTertiary, letterSpacing: 0.5 }}>
+                {comps.count} on eBay
+              </Text>
+            )}
+          </View>
+
+          <View style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, padding: 14 }}>
+            {compsLoading && !comps ? (
+              <Text style={{ fontSize: 13, color: C.textTertiary }}>Loading comps…</Text>
+            ) : comps && comps.median != null ? (
+              <>
+                <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+                  <Text style={{ fontFamily: FONT.display, fontSize: 36, color: C.text, lineHeight: 36, letterSpacing: -1 }}>
+                    {formatCompPrice(comps.median, comps.currency)}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: C.textSecondary, fontFamily: FONT.mono }}>median ask</Text>
+                </View>
+                {comps.low != null && comps.high != null && comps.low !== comps.high && (
+                  <Text style={{ fontSize: 12, color: C.textSecondary, marginTop: 2, fontFamily: FONT.mono }}>
+                    {formatCompPrice(comps.low, comps.currency)} – {formatCompPrice(comps.high, comps.currency)}
+                  </Text>
+                )}
+
+                {comps.samples.length > 0 && (
+                  <View style={{ marginTop: 14, gap: 8 }}>
+                    {comps.samples.slice(0, 3).map((s, i) => (
+                      <Pressable
+                        key={i}
+                        onPress={() => s.url && Linking.openURL(s.url)}
+                        style={({ pressed }) => ({
+                          flexDirection: "row", alignItems: "center", gap: 10,
+                          paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10,
+                          backgroundColor: pressed ? C.surfaceHover : C.bgRaised,
+                          borderWidth: 1, borderColor: C.borderSubtle,
+                        })}
+                      >
+                        {s.thumbnail ? (
+                          <Image source={{ uri: s.thumbnail }} style={{ width: 36, height: 50, borderRadius: 4 }} contentFit="cover" />
+                        ) : (
+                          <View style={{ width: 36, height: 50, borderRadius: 4, backgroundColor: C.surfaceLow }} />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text numberOfLines={2} style={{ fontSize: 11, color: C.textSecondary, lineHeight: 14 }}>{s.title}</Text>
+                        </View>
+                        <Text style={{ fontFamily: FONT.monoBold, fontSize: 13, color: C.text }}>
+                          {formatCompPrice(s.price, s.currency)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+
+                <Text style={{ fontSize: 10, color: C.textTertiary, marginTop: 12, lineHeight: 14 }}>
+                  Asking prices from active eBay listings — not sold comps. Real sale prices vary.
+                </Text>
+              </>
+            ) : null}
+          </View>
+        </View>
+      )}
 
       {/* Tips */}
       {result.tips.length > 0 && (

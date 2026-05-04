@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useState } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
@@ -14,9 +14,10 @@ import { getCards } from "@/lib/storage";
 import { GradedCard } from "@/lib/types";
 import { CardArt, artKindFor } from "@/components/card-art";
 import { HoloFoil } from "@/components/holo-foil";
-import { Icon } from "@/components/icon";
+import { Icon, type IconName } from "@/components/icon";
 import { C, FONT, SHADOW } from "@/lib/theme";
 import { getGradeColor } from "@/lib/grade-colors";
+import { canScan, getQuota, FREE_DAILY_LIMIT, type QuotaSnapshot } from "@/lib/scan-quota";
 
 const HORIZ = 20;
 
@@ -27,6 +28,15 @@ export default function ScanScreen() {
 
   const [appReady, setAppReady] = useState(false);
   const [recents, setRecents] = useState<GradedCard[]>([]);
+  const [quota, setQuota] = useState<QuotaSnapshot>({ used: 0, limit: FREE_DAILY_LIMIT, remaining: FREE_DAILY_LIMIT, isPro: false });
+
+  // Refresh quota whenever the scan tab regains focus — it changes after every
+  // successful grade and after the paywall.
+  useFocusEffect(
+    useCallback(() => {
+      getQuota().then(setQuota);
+    }, [])
+  );
 
   useEffect(() => {
     const t = setTimeout(() => setAppReady(true), 500);
@@ -59,20 +69,27 @@ export default function ScanScreen() {
     router.push("/(tabs)/(scan)/analyzing");
   }, [router]);
 
-  const takePhoto = useCallback(() => {
+  const takePhoto = useCallback(async () => {
+    if (!(await canScan())) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      router.push("/scan-limit" as any);
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push("/(tabs)/(scan)/camera");
   }, [router]);
 
   const pickImage = useCallback(async () => {
+    if (!(await canScan())) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      router.push("/scan-limit" as any);
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.9 });
     if (result.canceled) return;
     handleImageSelected(result.assets[0].uri);
-  }, [handleImageSelected]);
+  }, [handleImageSelected, router]);
 
-  // Stat values — derived once we wire to real data; placeholders for now.
-  const scansCount = recents.length;
-  const gemsCount = recents.filter(r => r.result.overallGrade >= 9.5).length;
   const greeting = greetingFor(new Date());
   const displayName = isAnonymous ? "FRIEND" : (userEmail?.split("@")[0]?.toUpperCase() ?? "FRIEND");
 
@@ -94,16 +111,27 @@ export default function ScanScreen() {
             <Text style={{ fontFamily: FONT.mono, fontSize: 10, color: C.textTertiary, marginTop: 2, letterSpacing: 0.5 }}>{greeting}, {displayName}</Text>
           </View>
         </View>
-        <Pressable onPress={() => router.push("/streak" as any)} style={({ pressed }) => ({
-          flexDirection: "row", alignItems: "center", gap: 6,
-          paddingVertical: 6, paddingHorizontal: 10, borderRadius: 100,
-          backgroundColor: C.surface, borderWidth: 1, borderColor: C.mintFaint,
-          opacity: pressed ? 0.7 : 1,
-        })}>
-          <Text style={{ fontSize: 14 }}>🔥</Text>
-          <Text style={{ fontFamily: FONT.monoBold, fontSize: 13, color: C.mint }}>{Math.min(recents.length, 14)}</Text>
-          <Text style={{ fontFamily: FONT.mono, fontSize: 10, color: C.textSecondary, letterSpacing: 0.5 }}>DAY</Text>
-        </Pressable>
+        {/* Scan-counter pill — Pro hides it; free tier shows N / 5 LEFT. Tap = paywall. */}
+        {quota.isPro ? (
+          <View style={{
+            flexDirection: "row", alignItems: "center", gap: 6,
+            paddingVertical: 6, paddingHorizontal: 10, borderRadius: 100,
+            backgroundColor: C.surface, borderWidth: 1, borderColor: C.mintFaint,
+          }}>
+            <Text style={{ fontSize: 11 }}>✦</Text>
+            <Text style={{ fontFamily: FONT.monoBold, fontSize: 11, color: C.mint, letterSpacing: 0.5 }}>PRO</Text>
+          </View>
+        ) : (
+          <Pressable onPress={() => router.push("/paywall" as any)} style={({ pressed }) => ({
+            flexDirection: "row", alignItems: "center", gap: 6,
+            paddingVertical: 6, paddingHorizontal: 12, borderRadius: 100,
+            backgroundColor: C.surface, borderWidth: 1, borderColor: C.mintFaint,
+            opacity: pressed ? 0.7 : 1,
+          })}>
+            <Text style={{ fontFamily: FONT.monoBold, fontSize: 12, color: C.mint }}>{quota.remaining}</Text>
+            <Text style={{ fontFamily: FONT.mono, fontSize: 10, color: C.textTertiary, letterSpacing: 0.5 }}>/ {quota.limit} LEFT</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Hero card */}
@@ -156,46 +184,28 @@ export default function ScanScreen() {
         </View>
       </View>
 
-      {/* Daily challenge */}
-      <View style={{ paddingHorizontal: HORIZ, paddingTop: 14 }}>
-        <Pressable onPress={() => router.push("/streak" as any)} style={({ pressed }) => ({
-          backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 16, padding: 14,
-          flexDirection: "row", alignItems: "center", gap: 12,
-          opacity: pressed ? 0.85 : 1,
-        })}>
-          <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: C.goldFaint, borderWidth: 1, borderColor: `${C.gold}40`, justifyContent: "center", alignItems: "center" }}>
-            <Text style={{ fontSize: 22 }}>🎯</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ fontSize: 13, fontFamily: FONT.uiBold, color: C.text }}>Daily Challenge</Text>
-              <Text style={{ fontFamily: FONT.mono, fontSize: 10, color: C.gold, letterSpacing: 0.5 }}>+50 XP</Text>
+      {/* Every scan includes — v2 value strip */}
+      <View style={{ paddingHorizontal: HORIZ, paddingTop: 18 }}>
+        <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.textTertiary, letterSpacing: 1.5, marginBottom: 10 }}>EVERY SCAN INCLUDES</Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {([
+            { i: "sparkles", t: "AI grade 1–10",   d: "Centering, corners, edges, surface" },
+            { i: "trend",    t: "Market value",    d: "Live estimates from recent listings" },
+            { i: "stack",    t: "Vault entry",     d: "Saved automatically to your collection" },
+            { i: "share",    t: "Share card",      d: "Beautiful image to share anywhere" },
+          ] as { i: IconName; t: string; d: string }[]).map((f) => (
+            <View key={f.t} style={{
+              width: "48.5%",
+              backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, padding: 12,
+            }}>
+              <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: C.mintFaint, justifyContent: "center", alignItems: "center", marginBottom: 8 }}>
+                <Icon name={f.i} size={14} color={C.mint} />
+              </View>
+              <Text style={{ fontSize: 12, fontFamily: FONT.uiBold, color: C.text }}>{f.t}</Text>
+              <Text style={{ fontSize: 10, color: C.textTertiary, marginTop: 3, lineHeight: 13 }}>{f.d}</Text>
             </View>
-            <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>Scan 3 cards today · {Math.min(scansCount, 3)}/3 done</Text>
-            <View style={{ marginTop: 6, height: 4, backgroundColor: C.bgRaised, borderRadius: 2, overflow: "hidden" }}>
-              <LinearGradient
-                colors={[C.gold, C.mint]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{ width: `${Math.min(scansCount / 3, 1) * 100}%`, height: "100%", borderRadius: 2 }}
-              />
-            </View>
-          </View>
-        </Pressable>
-      </View>
-
-      {/* Stats */}
-      <View style={{ paddingHorizontal: HORIZ, paddingTop: 14, flexDirection: "row", gap: 8 }}>
-        {[
-          { v: String(scansCount), l: "SCANS", c: C.text },
-          { v: pickImageOrPlaceholderUI(recents) ? `$${(scansCount * 65).toLocaleString()}` : "$0", l: "VAULT", c: C.mint },
-          { v: String(gemsCount), l: "GEMS", c: C.gold },
-        ].map((s) => (
-          <View key={s.l} style={{ flex: 1, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 }}>
-            <Text style={{ fontFamily: FONT.display, fontSize: 24, color: s.c, lineHeight: 24, letterSpacing: -0.5 }}>{s.v}</Text>
-            <Text style={{ fontFamily: FONT.mono, fontSize: 9, color: C.textTertiary, marginTop: 4, letterSpacing: 1, fontWeight: "600" }}>{s.l}</Text>
-          </View>
-        ))}
+          ))}
+        </View>
       </View>
 
       {/* Recent grades */}
@@ -259,10 +269,6 @@ export default function ScanScreen() {
       )}
     </ScrollView>
   );
-}
-
-function pickImageOrPlaceholderUI(_recents: GradedCard[]): boolean {
-  return _recents.length > 0;
 }
 
 function greetingFor(now: Date): string {
