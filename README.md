@@ -40,13 +40,16 @@ account-deletion (Apple 5.1.1(v)) requirements.
 ```
 src/
   app/                      Expo Router screens
-    (tabs)/                  scan / collection / settings
+    (tabs)/                  (scan) / (collection) / (profile)
     auth/                    OAuth callback
-    login.tsx, terms.tsx, privacy.tsx, ...
+    login.tsx, terms.tsx, privacy.tsx, paywall.tsx, ...
   components/               Shared UI (grade-badge, scan-button, ...)
   lib/                      Logic (grading-engine, card-service, supabase, theme)
   assets/                   Icon, splash, sample artwork
-supabase/functions/grade/   Edge function (Claude proxy)
+supabase/functions/
+  grade/                    Edge function (Claude proxy)
+  comps/                    eBay listing comps
+  delete-account/           Apple SIWA revocation + data purge
 design-preview/             HTML mockup of redesigned screens
 ```
 

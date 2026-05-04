@@ -76,7 +76,7 @@
         "projectId": "eafbd7db-3c15-44e4-87d0-fc629985a17a"
       }
     },
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": { "policy": "fingerprint" },
     "updates": {
       "url": "https://u.expo.dev/eafbd7db-3c15-44e4-87d0-fc629985a17a"
     }
