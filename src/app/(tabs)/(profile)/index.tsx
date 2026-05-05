@@ -141,11 +141,16 @@ export default function ProfileScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: insets.bottom + 24, paddingTop: 12 }}
+      contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: insets.bottom + 24, paddingTop: insets.top + 6 }}
       showsVerticalScrollIndicator={false}
     >
+      {/* Page title */}
+      <Text style={{ fontFamily: FONT.display, fontSize: 30, color: C.text, lineHeight: 30, letterSpacing: -0.5, textAlign: "center" }}>
+        Profile
+      </Text>
+
       {/* Profile header */}
-      <View style={{ alignItems: "center", gap: 12, paddingTop: 8 }}>
+      <View style={{ alignItems: "center", gap: 12 }}>
         <View style={{ width: 80, height: 80, borderRadius: 24, backgroundColor: C.surface, borderWidth: 1, borderColor: C.borderStrong, justifyContent: "center", alignItems: "center" }}>
           <Text style={{ fontFamily: FONT.display, fontSize: 36, color: C.mint, lineHeight: 36 }}>{displayName[0]?.toUpperCase()}</Text>
         </View>
