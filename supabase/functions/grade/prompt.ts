@@ -1,13 +1,13 @@
-// Loads the canonical grading prompt from prompt.md at module-init time.
-//
-// prompt.md is the single source of truth — edit it, redeploy the function,
-// and the new prompt is live. Keeping the prompt in markdown lets non-engineers
-// review/tune it via PRs without touching TypeScript.
-//
-// Supabase Edge Functions bundle files colocated with the function entrypoint,
-// so prompt.md ships alongside index.ts when you run `supabase functions deploy`.
-const promptUrl = new URL("./prompt.md", import.meta.url);
-export const GRADE_PROMPT = await Deno.readTextFile(promptUrl);
+// Loads the canonical grading prompt. The content is bundled via
+// prompt-content.ts (a generated TS module) instead of a runtime
+// Deno.readTextFile of prompt.md — Supabase CLI's bundler only follows
+// `import` statements, so reading prompt.md at runtime crashes the deployed
+// worker because the .md file isn't shipped. The eval harness at
+// scripts/eval_grader.py still reads prompt.md directly, keeping prompt.md
+// as the editable source of truth. Run scripts/build-prompt-ts.sh after
+// every edit to prompt.md.
+
+import { GRADE_PROMPT_RAW } from "./prompt-content.ts";
 
 // Convenience split: the markdown has two H2 sections, "## SYSTEM" and "## USER",
 // which map to Anthropic's system block (cacheable) and user message (per-request,
@@ -21,5 +21,6 @@ function sliceBetween(text: string, startMarker: string, endMarker: string | nul
   return (end === -1 ? text.slice(sliceFrom) : text.slice(sliceFrom, end)).trim();
 }
 
+export const GRADE_PROMPT = GRADE_PROMPT_RAW;
 export const SYSTEM_PROMPT = sliceBetween(GRADE_PROMPT, "## SYSTEM", "## USER");
 export const USER_PROMPT = sliceBetween(GRADE_PROMPT, "## USER", null);
