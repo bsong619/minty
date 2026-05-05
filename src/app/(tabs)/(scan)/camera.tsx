@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, useWindowDimensions, Linking } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
-import { setPendingImageUri, setPendingImageUris } from "@/lib/pending-scan";
+import { setPendingImageUris } from "@/lib/pending-scan";
 import { C } from "@/lib/theme";
 
 const CARD_RATIO = 7 / 5; // height / width (portrait card)
@@ -75,13 +75,12 @@ export default function CameraScreen() {
     }
   };
 
-  const skipBack = () => {
-    setPendingImageUri(frontUri!);
-    router.push("/(tabs)/(scan)/analyzing");
-  };
-
-  // Auto-trigger the system permission prompt on mount. Apple 5.1.1(iv): no
-  // pre-prompt with opt-out — the user must always proceed to the OS dialog.
+  // Apple 5.1.1(iv): the OS permission prompt MUST be the first thing the
+  // user sees when they hit a permission-gated feature. Do NOT add a custom
+  // "Camera Access Required" / "Continue" / "Allow" preamble before this —
+  // Apple rejected build 39 specifically for that pattern (submission
+  // 056e5389 on 2026-03-23 and 2026-04-03). Auto-call requestPermission and
+  // render an empty black sheet behind the OS dialog.
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
@@ -92,8 +91,12 @@ export default function CameraScreen() {
 
   if (!permission.granted) {
     if (permission.canAskAgain) {
+      // First-time / pre-prompt state — render nothing visible. The OS
+      // dialog is on top. Adding a preamble here = automatic rejection.
       return <View style={{ flex: 1, backgroundColor: "#000" }} />;
     }
+    // Recovery screen: only shown AFTER permission was permanently denied,
+    // never before. Apple permits this because the OS will not re-prompt.
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", gap: 16, padding: 32 }}>
         <Text style={{ fontSize: 18, fontWeight: "700", color: C.text, textAlign: "center" }}>Camera access is off</Text>
@@ -104,10 +107,10 @@ export default function CameraScreen() {
           onPress={() => Linking.openSettings()}
           style={({ pressed }) => ({
             paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14,
-            backgroundColor: C.red, opacity: pressed ? 0.85 : 1,
+            backgroundColor: C.mint, opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Text style={{ fontSize: 16, fontWeight: "600", color: "white" }}>Open Settings</Text>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: C.onMint }}>Open Settings</Text>
         </Pressable>
         <Pressable onPress={() => router.back()}>
           <Text style={{ fontSize: 14, color: C.textSecondary }}>Close</Text>
@@ -191,7 +194,7 @@ export default function CameraScreen() {
           <View style={{ alignItems: "center", gap: 10 }}>
             <Text style={{ fontSize: 26, fontWeight: "800", color: C.text, letterSpacing: -0.5 }}>Front captured!</Text>
             <Text style={{ fontSize: 16, color: C.textSecondary, textAlign: "center", lineHeight: 24 }}>
-              Flip your card over to photograph the back for more accurate centering analysis.
+              Flip your card over to photograph the back. Both sides give the most accurate grade.
             </Text>
           </View>
 
@@ -200,22 +203,11 @@ export default function CameraScreen() {
               onPress={() => setPhase("back")}
               style={({ pressed }) => ({
                 padding: 17, borderRadius: 16, borderCurve: "continuous",
-                backgroundColor: C.red, alignItems: "center",
+                backgroundColor: C.mint, alignItems: "center",
                 opacity: pressed ? 0.85 : 1,
               })}
             >
-              <Text style={{ fontSize: 16, fontWeight: "700", color: "white" }}>Photograph Back</Text>
-            </Pressable>
-            <Pressable
-              onPress={skipBack}
-              style={({ pressed }) => ({
-                padding: 17, borderRadius: 16, borderCurve: "continuous",
-                backgroundColor: C.surface, alignItems: "center",
-                borderWidth: 1, borderColor: C.border,
-                opacity: pressed ? 0.85 : 1,
-              })}
-            >
-              <Text style={{ fontSize: 16, fontWeight: "600", color: C.textSecondary }}>Skip — Front Only</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: C.onMint }}>Photograph Back</Text>
             </Pressable>
           </View>
         </View>

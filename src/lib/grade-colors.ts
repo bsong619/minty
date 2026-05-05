@@ -13,7 +13,7 @@ export function getGradeColor(grade: number): string {
 export function getConfidenceColor(confidence: "High" | "Medium" | "Low"): string {
   switch (confidence) {
     case "High":   return C.mint;
-    case "Medium": return C.g56;
-    case "Low":    return C.g14;
+    case "Medium": return C.info;
+    case "Low":    return C.warn;
   }
 }

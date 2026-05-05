@@ -90,6 +90,11 @@ Output discipline:
 - Sub-grades use 0.5 increments on a 1–10 scale. Overall grade = floor(min(centering, corners, edges, surface)).
 - For any region that is glare-affected, blurred, compression-degraded, or out of frame, mark it obscured — do NOT assume clean. Obscured regions count as evidence AGAINST a 10.
 
+Already-graded slabs (PSA / BGS / CGC holders):
+- If the card is sealed inside a professional grading holder (visible label strip with "PSA", "BGS", "CGC", "SGC", a numeric grade, or a cert number), DO NOT predict a fresh grade. Treat the card as already graded.
+- Set `bucket = "Already graded"`, `overallGrade` and `subGrades` to the printed grade if you can read it (else `null`), and surface the printed grade in `tips` (e.g. "This card appears to be PSA 9 — re-grading would require cracking the slab."). Set `confidence = "Low"` since we cannot inspect the card surface through the holder.
+- A holder is NOT the same as a top-loader or penny sleeve. A penny sleeve is a thin clear pouch; a top-loader is a hard plastic rectangle. Cards in those are still raw and should be graded normally.
+
 ---
 
 ## USER
@@ -182,7 +187,7 @@ Return exactly this JSON shape, no markdown, no commentary:
 {
   "overallGrade": <integer 1-10>,
   "psa10Likelihood": <number 0.0-1.0>,
-  "bucket": "<Lock 10 | Strong 10 candidate | Coin-flip 9/10 | Likely 9 | Below 9>",
+  "bucket": "<Lock 10 | Strong 10 candidate | Coin-flip 9/10 | Likely 9 | Below 9 | Already graded>",
   "photoQuality": "<High | Medium | Low>",
   "confidence": "<High | Medium | Low>",
   "subGrades": {

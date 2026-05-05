@@ -67,7 +67,10 @@ export async function analyzeCard(imageUri: string, backImageUri?: string): Prom
   if (!accessToken) throw new Error("Please sign in to grade a card");
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  // Vision call w/ Sonnet on a 1568px image regularly takes 35-55s. Edge function aborts at
+  // 55s and returns 504; client gives it ~20s of head-room before giving up itself, so the
+  // user sees the cleaner edge-side error rather than a generic AbortError.
+  const timeout = setTimeout(() => controller.abort(), 75_000);
   let res: Response;
   try {
     res = await fetch(GRADE_ENDPOINT, {

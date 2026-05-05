@@ -29,18 +29,18 @@ const STEPS = [
     icon: "sf:wand.and.stars",
     title: "AI Analysis",
     description:
-      "Our AI evaluates your card across all four grading criteria like a pro — centering, corners, edges, and surface condition.",
+      "Our AI estimates your card across the four grading criteria professionals use — centering, corners, edges, and surface condition.",
     tips: [
-      "Higher quality photos = more accurate grades",
+      "Higher-quality photos give more detailed analysis",
       "Fill the entire frame with the card",
       "Hold the camera steady",
     ],
   },
   {
     icon: "sf:chart.bar.fill",
-    title: "Get Your Grade",
+    title: "Get Your Estimate",
     description:
-      "Get your predicted grade with a full breakdown — centering, corners, edges, surface — plus tips to level up.",
+      "See an AI-estimated grade with a full breakdown — centering, corners, edges, surface — plus tips to level up. Estimates only — not an official grade.",
     tips: [
       "5 free grades a day — Pro unlocks unlimited",
       "Save your best pulls to favorites",
@@ -224,7 +224,7 @@ export default function OnboardingScreen() {
         <Pressable
           onPress={handleNext}
           style={({ pressed }) => ({
-            backgroundColor: C.red,
+            backgroundColor: C.mint,
             paddingVertical: 16,
             paddingHorizontal: 48,
             borderRadius: 16,
@@ -235,7 +235,7 @@ export default function OnboardingScreen() {
             boxShadow: SHADOW.glow,
           } as any)}
         >
-          <Text style={{ fontSize: 17, fontWeight: "700", color: "white" }}>
+          <Text style={{ fontSize: 17, fontWeight: "700", color: C.onMint }}>
             {currentStep === STEPS.length - 1 ? "Get Started" : "Next"}
           </Text>
         </Pressable>

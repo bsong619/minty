@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import GradeBadge from "@/components/grade-badge";
@@ -17,6 +18,7 @@ export default function DetailsScreen() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
   const router = useRouter();
   const { userId } = useAuth();
+  const insets = useSafeAreaInsets();
   const [card, setCard] = useState<GradedCard | null>(null);
   const [heroUrl, setHeroUrl] = useState<string | undefined>(undefined);
 
@@ -56,7 +58,7 @@ export default function DetailsScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 40 }}
+      contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: insets.bottom + 24 }}
     >
       {/* Hero */}
       <View style={{ alignItems: "center", gap: 16, paddingVertical: 8 }}>
@@ -73,7 +75,7 @@ export default function DetailsScreen() {
           <Text style={{ fontSize: 26, fontWeight: "800", color: gradeColor, letterSpacing: -0.5 }}>
             Grade {result.overallGrade} — {GRADE_LABELS[result.overallGrade] ?? ""}
           </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 100, backgroundColor: `${confidenceColor}18`, borderWidth: 1, borderColor: `${confidenceColor}40` }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 100, backgroundColor: "transparent", borderWidth: 1, borderColor: confidenceColor }}>
             <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: confidenceColor }} />
             <Text style={{ fontSize: 13, color: confidenceColor, fontWeight: "600" }}>{result.confidence} Confidence</Text>
           </View>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, Pressable, Linking } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
@@ -21,12 +22,14 @@ const TIER_LABEL: Record<string, string> = {
   "Coin-flip 9/10": "Mint",
   "Likely 9": "Near Mint",
   "Below 9": "Below 9",
+  "Already graded": "Already graded",
 };
 
 export default function ResultsScreen() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
   const router = useRouter();
   const { userId } = useAuth();
+  const insets = useSafeAreaInsets();
   const [card, setCard] = useState<GradedCard | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [{ imageUri: localImageUri }] = useState(() => consumePendingResultImages());
@@ -106,12 +109,13 @@ export default function ResultsScreen() {
   const confPct = result.psa10Likelihood != null
     ? Math.round(result.psa10Likelihood * 100)
     : result.confidence === "High" ? 90 : result.confidence === "Medium" ? 65 : 40;
+  const confColor = confPct >= 85 ? C.mint : confPct >= 70 ? C.info : C.warn;
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingBottom: 40 }}
+      contentContainerStyle={{ paddingTop: insets.top + 6, paddingBottom: insets.bottom + 24 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
@@ -147,9 +151,9 @@ export default function ResultsScreen() {
             )}
           </View>
           <Text style={{ fontFamily: FONT.displayItalic, fontSize: 18, color: C.text, marginTop: 2 }}>{tierName}</Text>
-          <View style={{ marginTop: 8, alignSelf: "flex-start", paddingVertical: 4, paddingHorizontal: 8, backgroundColor: `${gradeColor}1F`, borderWidth: 1, borderColor: `${gradeColor}55`, borderRadius: 6, flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Text style={{ fontFamily: FONT.mono, fontSize: 9, color: gradeColor }}>●</Text>
-            <Text style={{ fontFamily: FONT.monoBold, fontSize: 9, color: gradeColor, letterSpacing: 0.5 }}>{confPct}% CONFIDENCE</Text>
+          <View style={{ marginTop: 8, alignSelf: "flex-start", paddingVertical: 4, paddingHorizontal: 8, backgroundColor: "transparent", borderWidth: 1, borderColor: confColor, borderRadius: 6, flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text style={{ fontFamily: FONT.mono, fontSize: 9, color: confColor }}>●</Text>
+            <Text style={{ fontFamily: FONT.monoBold, fontSize: 9, color: confColor, letterSpacing: 0.5 }}>{confPct}% CONFIDENCE</Text>
           </View>
         </View>
       </View>
@@ -167,11 +171,11 @@ export default function ResultsScreen() {
         <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.textTertiary, letterSpacing: 1.5, marginBottom: 10 }}>SUB-GRADES</Text>
         <View style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14 }}>
           {([
-            ["Centering", result.subGrades.centering, `${result.centeringDetail.leftRight} · ${result.centeringDetail.topBottom}`],
-            ["Corners",   result.subGrades.corners,   summaryFor(result.cornersDetail)],
-            ["Edges",     result.subGrades.edges,     summaryFor(result.edgesDetail)],
-            ["Surface",   result.subGrades.surface,   summaryFor(result.surfaceDetail)],
-          ] as const).map(([label, val, detail], i, arr) => {
+            ["Centering", result.subGrades.centering],
+            ["Corners",   result.subGrades.corners],
+            ["Edges",     result.subGrades.edges],
+            ["Surface",   result.subGrades.surface],
+          ] as const).map(([label, val], i, arr) => {
             const c = getGradeColor(val);
             return (
               <View key={label} style={{
@@ -179,9 +183,8 @@ export default function ResultsScreen() {
                 paddingTop: i === 0 ? 14 : 12, paddingBottom: i === arr.length - 1 ? 14 : 12,
                 borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: C.borderSubtle,
               }}>
-                <View style={{ width: 96 }}>
+                <View style={{ width: 80 }}>
                   <Text style={{ fontSize: 13, fontFamily: FONT.uiBold, color: C.text }}>{label}</Text>
-                  {detail ? <Text numberOfLines={1} style={{ fontSize: 10, color: C.textTertiary, fontFamily: FONT.mono, marginTop: 1 }}>{detail}</Text> : null}
                 </View>
                 <View style={{ flex: 1, height: 5, backgroundColor: C.bgRaised, borderRadius: 3, overflow: "hidden" }}>
                   <View style={{ width: `${val * 10}%`, height: "100%", backgroundColor: c, borderRadius: 3, ...({ boxShadow: `0px 0px 8px ${c}80` } as any) }} />
@@ -321,10 +324,3 @@ export default function ResultsScreen() {
   );
 }
 
-function summaryFor(detail: any): string | null {
-  if (!detail) return null;
-  if (detail.notes) return detail.notes;
-  // Surface a salient location if present
-  const v = Object.values(detail).find((x) => typeof x === "string" && x);
-  return (v as string) || null;
-}

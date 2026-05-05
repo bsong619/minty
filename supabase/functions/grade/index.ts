@@ -27,7 +27,7 @@ import { SYSTEM_PROMPT, USER_PROMPT } from "./prompt.ts";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 2048;
-const REQUEST_TIMEOUT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 55_000; // Stays under Supabase's 60s edge-function wall-clock.
 const RATE_LIMIT_PER_HOUR = 30;
 
 // Prompt is loaded from prompt.md via prompt.ts so the eval harness at

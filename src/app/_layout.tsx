@@ -173,7 +173,6 @@ export default function Layout() {
           <Stack.Screen name="paywall" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="scan-limit" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="customer-center" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
-          <Stack.Screen name="streak" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="share" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="reveal" options={{ presentation: "transparentModal", animation: "fade", headerShown: false }} />
         </Stack>

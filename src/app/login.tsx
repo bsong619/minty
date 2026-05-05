@@ -301,7 +301,12 @@ export default function LoginScreen() {
 
         {/* Social buttons */}
         <View style={{ gap: 10 }}>
-          {/* Apple Sign In — required by App Store if any social login is offered */}
+          {/* Apple 4.8 + HIG: SIWA must use the official AppleAuthenticationButton.
+              Apple rejected build 39 (submission 056e5389, 2026-03-23) for using
+              a custom-styled black-on-black Pressable "Sign in with Apple" — the
+              button blended into the dark page so reviewers couldn't tell it was
+              tappable. Use the official component with WHITE style on dark UIs;
+              do NOT swap it for a custom button. */}
           {appleAvailable && (
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}

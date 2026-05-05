@@ -73,35 +73,6 @@ alter table scanned_cards
   add column if not exists disqualifying_flaws text[],
   add column if not exists obscured_regions   text[],
   add column if not exists tcg_image_url      text;
-
--- Optional: tables for streak / challenge / leaderboard features.
--- The home/streak/trends screens render gracefully without these, but adding
--- them lets the streak pill, daily challenge progress, and friends leaderboard
--- show real numbers.
-
-create table if not exists user_streaks (
-  user_id uuid primary key references auth.users on delete cascade,
-  current_streak int not null default 0,
-  longest_streak int not null default 0,
-  last_scan_date date,
-  freeze_days_remaining int not null default 0
-);
-
-create table if not exists daily_challenges (
-  user_id uuid references auth.users on delete cascade,
-  challenge_date date,
-  scans_completed int not null default 0,
-  xp_awarded int not null default 0,
-  primary key (user_id, challenge_date)
-);
-
-create table if not exists friendships (
-  user_a uuid references auth.users on delete cascade,
-  user_b uuid references auth.users on delete cascade,
-  status text check (status in ('pending','accepted')) default 'pending',
-  created_at timestamptz default now(),
-  primary key (user_a, user_b)
-);
 ```
 
 ## Required Supabase RLS policies
