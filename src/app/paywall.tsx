@@ -1,4 +1,4 @@
-import { Alert, Pressable, ScrollView, Text, View, ActivityIndicator } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View, ActivityIndicator, Linking } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -206,11 +206,18 @@ function FallbackPaywall() {
           </Pressable>
         </View>
 
+        {/* Apple 3.1.2 — auto-renewal terms must be visible BEFORE the purchase action. */}
+        <Text style={{ textAlign: "center", marginTop: 14, fontSize: 11, color: C.textSecondary, lineHeight: 16, paddingHorizontal: 8 }}>
+          {plan === "annual"
+            ? `7-day free trial, then ${annualPkg?.product.priceString ?? "$39.99"}/year. Auto-renews until canceled in App Store settings.`
+            : `${monthlyPkg?.product.priceString ?? "$7.99"}/month. Auto-renews until canceled in App Store settings.`}
+        </Text>
+
         <Pressable
           onPress={handleSubscribe}
           disabled={busy}
           style={({ pressed }) => ({
-            marginTop: 14, paddingVertical: 16, borderRadius: 14,
+            marginTop: 12, paddingVertical: 16, borderRadius: 14,
             backgroundColor: C.mint, alignItems: "center",
             opacity: busy ? 0.7 : pressed ? 0.85 : 1,
             ...({ boxShadow: SHADOW.glow } as any),
@@ -223,12 +230,24 @@ function FallbackPaywall() {
               <Text style={{ fontFamily: FONT.uiBold, fontSize: 15, color: C.onMint }}>Working…</Text>
             </>
           ) : (
-            <Text style={{ fontFamily: FONT.uiBold, fontSize: 15, color: C.onMint }}>Start 7-day free trial</Text>
+            <Text style={{ fontFamily: FONT.uiBold, fontSize: 15, color: C.onMint }}>
+              {plan === "annual" ? "Start 7-day free trial" : "Subscribe"}
+            </Text>
           )}
         </Pressable>
-        <Text style={{ textAlign: "center", marginTop: 10, fontSize: 10, color: C.textTertiary, lineHeight: 14 }}>
-          Then $39.99/year. Auto-renews until canceled.
-        </Text>
+
+        {/* Apple 3.1.2 — Privacy + Terms must be linked from the paywall. */}
+        <View style={{ flexDirection: "row", justifyContent: "center", gap: 18, marginTop: 14 }}>
+          <Pressable hitSlop={8} onPress={() => router.push("/terms" as any)}>
+            <Text style={{ fontSize: 11, color: C.textSecondary, textDecorationLine: "underline" }}>Terms of Service</Text>
+          </Pressable>
+          <Pressable hitSlop={8} onPress={() => router.push("/privacy" as any)}>
+            <Text style={{ fontSize: 11, color: C.textSecondary, textDecorationLine: "underline" }}>Privacy Policy</Text>
+          </Pressable>
+          <Pressable hitSlop={8} onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions")}>
+            <Text style={{ fontSize: 11, color: C.textSecondary, textDecorationLine: "underline" }}>Manage</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );

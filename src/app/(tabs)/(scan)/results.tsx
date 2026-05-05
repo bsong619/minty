@@ -22,6 +22,7 @@ const TIER_LABEL: Record<string, string> = {
   "Coin-flip 9/10": "Mint",
   "Likely 9": "Near Mint",
   "Below 9": "Below 9",
+  "Already graded": "Already graded",
 };
 
 export default function ResultsScreen() {

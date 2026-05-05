@@ -59,15 +59,16 @@ export async function uploadCardImage(
     });
   if (error) throw error;
 
-  // Use signed URL — works even if bucket isn't public
+  // Bucket is private — only signed URLs are returned. We never fall back to
+  // getPublicUrl(): if the signing call fails it means RLS or auth is broken,
+  // and silently leaking a public URL would expose user-uploaded card photos.
   const { data: signed, error: signError } = await supabase.storage
     .from("card-images")
     .createSignedUrl(path, 60 * 60 * 24 * 365); // 1 year
-  if (signed?.signedUrl) return signed.signedUrl;
-
-  // Fallback to public URL
-  const { data } = supabase.storage.from("card-images").getPublicUrl(path);
-  return data.publicUrl;
+  if (signError || !signed?.signedUrl) {
+    throw signError ?? new Error("Failed to sign card image URL");
+  }
+  return signed.signedUrl;
 }
 
 // --- Save a complete scan ---
