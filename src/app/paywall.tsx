@@ -177,11 +177,16 @@ function FallbackPaywall() {
                 <Text style={{ fontSize: 14, fontFamily: FONT.uiBold, color: C.text }}>Annual</Text>
                 <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>$3.33/mo · billed yearly</Text>
               </View>
-              <View style={{ alignItems: "flex-end" }}>
-                <Text style={{ fontFamily: FONT.display, fontSize: 24, color: plan === "annual" ? C.mint : C.text, lineHeight: 24 }}>
+              <View style={{ alignItems: "flex-end", paddingLeft: 8 }}>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                  style={{ fontFamily: FONT.display, fontSize: 24, color: plan === "annual" ? C.mint : C.text, lineHeight: 30 }}
+                >
                   {annualPkg?.product.priceString ?? "$39.99"}
                 </Text>
-                <Text style={{ fontSize: 10, color: C.textTertiary, marginTop: 2, textDecorationLine: "line-through" }}>$95.88</Text>
+                <Text numberOfLines={1} style={{ fontSize: 10, color: C.textTertiary, marginTop: 2, textDecorationLine: "line-through" }}>$95.88</Text>
               </View>
             </View>
           </Pressable>
@@ -199,7 +204,12 @@ function FallbackPaywall() {
                 <Text style={{ fontSize: 14, fontFamily: FONT.uiBold, color: C.text }}>Monthly</Text>
                 <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>Cancel anytime</Text>
               </View>
-              <Text style={{ fontFamily: FONT.display, fontSize: 22, color: plan === "monthly" ? C.mint : C.text, lineHeight: 22 }}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                style={{ fontFamily: FONT.display, fontSize: 22, color: plan === "monthly" ? C.mint : C.text, lineHeight: 28, paddingLeft: 8 }}
+              >
                 {monthlyPkg?.product.priceString ?? "$7.99"}
               </Text>
             </View>
