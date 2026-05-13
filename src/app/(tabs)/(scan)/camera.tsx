@@ -1,11 +1,46 @@
 import { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, useWindowDimensions, Linking } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { useRouter } from "expo-router";
 import { setPendingImageUri, setPendingImageUris } from "@/lib/pending-scan";
 import { C } from "@/lib/theme";
 
 const CARD_RATIO = 7 / 5; // height / width (portrait card)
+const CARD_WIDTH_RATIO = 5 / 7; // width / height (inverse, for crop math)
+
+// Crop the captured photo to the card aspect ratio at ~92% of the smaller
+// dimension, centered. Removes background pixels so Claude's vision tokens
+// concentrate on the card itself instead of the marble / table / fingers.
+async function cropToCardArea(uri: string): Promise<string> {
+  try {
+    const ctx = ImageManipulator.manipulate(uri);
+    const probed = await ctx.renderAsync();
+    const { width: w, height: h } = probed;
+    if (!w || !h) return uri;
+    let cropW: number, cropH: number;
+    const photoRatio = w / h;
+    if (photoRatio < CARD_WIDTH_RATIO) {
+      // Photo taller than card — width is the constraint
+      cropW = w * 0.92;
+      cropH = cropW / CARD_WIDTH_RATIO;
+    } else {
+      // Photo wider than card — height is the constraint
+      cropH = h * 0.92;
+      cropW = cropH * CARD_WIDTH_RATIO;
+    }
+    const originX = Math.round((w - cropW) / 2);
+    const originY = Math.round((h - cropH) / 2);
+    const cropped = await ImageManipulator.manipulate(uri)
+      .crop({ originX, originY, width: Math.round(cropW), height: Math.round(cropH) })
+      .renderAsync();
+    const result = await cropped.saveAsync({ format: SaveFormat.JPEG, compress: 0.92 });
+    return result.uri;
+  } catch (e) {
+    console.warn("[cropToCardArea] failed, using uncropped photo:", e);
+    return uri;
+  }
+}
 const CORNER_SIZE = 30;
 const CORNER_THICKNESS = 3;
 
@@ -48,7 +83,10 @@ export default function CameraScreen() {
   const [phase, setPhase] = useState<Phase>("front");
   const [frontUri, setFrontUri] = useState<string | null>(null);
 
-  const cutoutWidth = screenWidth * 0.8;
+  // Tighter frame guide pushes users to hold the camera closer so the card
+  // fills more of the photo. Combined with the post-capture crop below, this
+  // dramatically increases the card's pixel share in what Claude sees.
+  const cutoutWidth = Math.min(screenWidth * 0.92, (screenHeight - 240) / CARD_RATIO);
   const cutoutHeight = cutoutWidth * CARD_RATIO;
   const cutoutTop = (screenHeight - cutoutHeight) / 2;
   const cutoutLeft = (screenWidth - cutoutWidth) / 2;
@@ -59,12 +97,13 @@ export default function CameraScreen() {
     try {
       const photo = await cameraRef.current?.takePictureAsync({ quality: 0.9 });
       if (photo?.uri) {
+        const cropped = await cropToCardArea(photo.uri);
         if (phase === "front") {
-          setFrontUri(photo.uri);
+          setFrontUri(cropped);
           setPhase("flip-prompt");
         } else {
           // back captured — navigate with both
-          setPendingImageUris(frontUri!, photo.uri);
+          setPendingImageUris(frontUri!, cropped);
           router.push("/(tabs)/(scan)/analyzing");
         }
       }
