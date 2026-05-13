@@ -12,12 +12,9 @@ const CARD_WIDTH_RATIO = 5 / 7; // width / height (inverse, for crop math)
 // Crop the captured photo to the card aspect ratio at ~92% of the smaller
 // dimension, centered. Removes background pixels so Claude's vision tokens
 // concentrate on the card itself instead of the marble / table / fingers.
-async function cropToCardArea(uri: string): Promise<string> {
+async function cropToCardArea(uri: string, w?: number, h?: number): Promise<string> {
+  if (!w || !h) return uri;
   try {
-    const ctx = ImageManipulator.manipulate(uri);
-    const probed = await ctx.renderAsync();
-    const { width: w, height: h } = probed;
-    if (!w || !h) return uri;
     let cropW: number, cropH: number;
     const photoRatio = w / h;
     if (photoRatio < CARD_WIDTH_RATIO) {
@@ -31,10 +28,10 @@ async function cropToCardArea(uri: string): Promise<string> {
     }
     const originX = Math.round((w - cropW) / 2);
     const originY = Math.round((h - cropH) / 2);
-    const cropped = await ImageManipulator.manipulate(uri)
+    const ref = await ImageManipulator.manipulate(uri)
       .crop({ originX, originY, width: Math.round(cropW), height: Math.round(cropH) })
       .renderAsync();
-    const result = await cropped.saveAsync({ format: SaveFormat.JPEG, compress: 0.92 });
+    const result = await ref.saveAsync({ format: SaveFormat.JPEG, compress: 0.92 });
     return result.uri;
   } catch (e) {
     console.warn("[cropToCardArea] failed, using uncropped photo:", e);
@@ -97,7 +94,7 @@ export default function CameraScreen() {
     try {
       const photo = await cameraRef.current?.takePictureAsync({ quality: 0.9 });
       if (photo?.uri) {
-        const cropped = await cropToCardArea(photo.uri);
+        const cropped = await cropToCardArea(photo.uri, photo.width, photo.height);
         if (phase === "front") {
           setFrontUri(cropped);
           setPhase("flip-prompt");
