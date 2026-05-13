@@ -117,7 +117,6 @@ export default function ResultsScreen() {
       {/* Header */}
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingBottom: 0 }}>
         <Pressable onPress={() => router.back()}><Icon name="back" size={20} color={C.text} /></Pressable>
-        <Text style={{ fontFamily: FONT.mono, fontSize: 10, color: C.textTertiary, letterSpacing: 1 }}>REPORT №{reportNum}</Text>
         <Pressable onPress={() => router.push({ pathname: "/share", params: { cardId: card.id } } as any)}>
           <Icon name="share" size={20} color={C.text} />
         </Pressable>
@@ -136,21 +135,17 @@ export default function ResultsScreen() {
         <View style={{ flex: 1, paddingTop: 4 }}>
           <Text style={{ fontFamily: FONT.mono, fontSize: 9, color: C.textTertiary, letterSpacing: 1.5 }}>FINAL GRADE</Text>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 4 }}>
-            <Text style={{ fontFamily: FONT.display, fontSize: 80, color: gradeColor, lineHeight: 70, letterSpacing: -3 }}>
+            <Text style={{ fontFamily: FONT.display, fontSize: 80, color: gradeColor, lineHeight: 96, paddingHorizontal: 4 }}>
               {Number.isInteger(grade) ? grade : Math.floor(grade)}
             </Text>
             {!Number.isInteger(grade) && (
-              <Text style={{ fontFamily: FONT.display, fontSize: 24, color: gradeColor, lineHeight: 24 }}>.5</Text>
+              <Text style={{ fontFamily: FONT.display, fontSize: 24, color: gradeColor, lineHeight: 30 }}>.5</Text>
             )}
             {Number.isInteger(grade) && (
-              <Text style={{ fontFamily: FONT.display, fontSize: 24, color: gradeColor, lineHeight: 24 }}>.0</Text>
+              <Text style={{ fontFamily: FONT.display, fontSize: 24, color: gradeColor, lineHeight: 30 }}>.0</Text>
             )}
           </View>
-          <Text style={{ fontFamily: FONT.displayItalic, fontSize: 18, color: C.text, marginTop: 2 }}>{tierName}</Text>
-          <View style={{ marginTop: 8, alignSelf: "flex-start", paddingVertical: 4, paddingHorizontal: 8, backgroundColor: `${gradeColor}1F`, borderWidth: 1, borderColor: `${gradeColor}55`, borderRadius: 6, flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Text style={{ fontFamily: FONT.mono, fontSize: 9, color: gradeColor }}>●</Text>
-            <Text style={{ fontFamily: FONT.monoBold, fontSize: 9, color: gradeColor, letterSpacing: 0.5 }}>{confPct}% CONFIDENCE</Text>
-          </View>
+          <Text style={{ fontFamily: FONT.displayItalic, fontSize: 18, color: C.text, marginTop: 2, paddingHorizontal: 2 }}>{tierName}</Text>
         </View>
       </View>
 
@@ -167,11 +162,11 @@ export default function ResultsScreen() {
         <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.textTertiary, letterSpacing: 1.5, marginBottom: 10 }}>SUB-GRADES</Text>
         <View style={{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14 }}>
           {([
-            ["Centering", result.subGrades.centering, `${result.centeringDetail.leftRight} · ${result.centeringDetail.topBottom}`],
-            ["Corners",   result.subGrades.corners,   summaryFor(result.cornersDetail)],
-            ["Edges",     result.subGrades.edges,     summaryFor(result.edgesDetail)],
-            ["Surface",   result.subGrades.surface,   summaryFor(result.surfaceDetail)],
-          ] as const).map(([label, val, detail], i, arr) => {
+            ["Centering", result.subGrades.centering],
+            ["Corners",   result.subGrades.corners],
+            ["Edges",     result.subGrades.edges],
+            ["Surface",   result.subGrades.surface],
+          ] as const).map(([label, val], i, arr) => {
             const c = getGradeColor(val);
             return (
               <View key={label} style={{
@@ -179,14 +174,13 @@ export default function ResultsScreen() {
                 paddingTop: i === 0 ? 14 : 12, paddingBottom: i === arr.length - 1 ? 14 : 12,
                 borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: C.borderSubtle,
               }}>
-                <View style={{ width: 96 }}>
+                <View style={{ width: 80 }}>
                   <Text style={{ fontSize: 13, fontFamily: FONT.uiBold, color: C.text }}>{label}</Text>
-                  {detail ? <Text numberOfLines={1} style={{ fontSize: 10, color: C.textTertiary, fontFamily: FONT.mono, marginTop: 1 }}>{detail}</Text> : null}
                 </View>
                 <View style={{ flex: 1, height: 5, backgroundColor: C.bgRaised, borderRadius: 3, overflow: "hidden" }}>
                   <View style={{ width: `${val * 10}%`, height: "100%", backgroundColor: c, borderRadius: 3, ...({ boxShadow: `0px 0px 8px ${c}80` } as any) }} />
                 </View>
-                <Text style={{ fontFamily: FONT.display, fontSize: 22, color: c, width: 32, textAlign: "right", lineHeight: 22 }}>{val}</Text>
+                <Text style={{ fontFamily: FONT.display, fontSize: 22, color: c, width: 48, textAlign: "right", lineHeight: 28, paddingRight: 4 }}>{val}</Text>
               </View>
             );
           })}
@@ -279,20 +273,8 @@ export default function ResultsScreen() {
         </View>
       )}
 
-      {/* Actions */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, flexDirection: "row", gap: 8 }}>
-        <Pressable
-          onPress={() => router.push({ pathname: "/share", params: { cardId: card.id } } as any)}
-          style={({ pressed }) => ({
-            flex: 1, paddingVertical: 14, borderRadius: 12,
-            backgroundColor: C.mint, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-            opacity: pressed ? 0.85 : 1,
-            ...({ boxShadow: SHADOW.glow } as any),
-          })}
-        >
-          <Icon name="share" size={15} color={C.onMint} strokeWidth={2.5} />
-          <Text style={{ fontFamily: FONT.uiBold, fontSize: 14, color: C.onMint }}>Share to feed</Text>
-        </Pressable>
+      {/* Actions — Share/social removed for v1.0 (not wired up yet) */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
         <Pressable
           onPress={async () => {
             const newVal = !card.favorite;
@@ -304,13 +286,17 @@ export default function ResultsScreen() {
             } catch {}
           }}
           style={({ pressed }) => ({
-            width: 50, height: 50, borderRadius: 12,
-            backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
-            justifyContent: "center", alignItems: "center",
+            paddingVertical: 14, borderRadius: 12,
+            backgroundColor: card.favorite ? C.mint : C.surface,
+            borderWidth: 1, borderColor: card.favorite ? C.mint : C.border,
+            flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
             opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Icon name={card.favorite ? "heart" : "bookmark"} size={18} color={card.favorite ? C.mint : C.text} fill={card.favorite ? C.mint : "none"} />
+          <Icon name="heart" size={16} color={card.favorite ? C.onMint : C.text} fill={card.favorite ? C.onMint : "none"} strokeWidth={2.2} />
+          <Text style={{ fontFamily: FONT.uiBold, fontSize: 14, color: card.favorite ? C.onMint : C.text, paddingRight: 2 }}>
+            {card.favorite ? "Saved to favorites" : "Add to favorites"}
+          </Text>
         </Pressable>
       </View>
 
