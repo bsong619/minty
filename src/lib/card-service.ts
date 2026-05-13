@@ -244,6 +244,23 @@ export async function deleteScannedCard(
   if (error) throw error;
 }
 
+export async function deleteAllScannedCards(userId: string): Promise<void> {
+  try {
+    const { data: files } = await supabase.storage.from("card-images").list(userId);
+    if (files?.length) {
+      await supabase.storage.from("card-images").remove(files.map((f) => `${userId}/${f.name}`));
+    }
+  } catch (e) {
+    console.warn("Storage cleanup failed (non-blocking):", e);
+  }
+
+  const { error } = await supabase
+    .from("scanned_cards")
+    .delete()
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
 // --- Demo / seed data ---
 
 // Demo seeding removed — collection starts empty. Kept as a no-op so existing

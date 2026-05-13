@@ -73,6 +73,7 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -120,7 +121,7 @@ export default function LoginScreen() {
         await refreshAuth();
         await completeFlow();
       } else {
-        const user = await signUpWithEmail(email.trim(), password);
+        const user = await signUpWithEmail(email.trim(), password, firstName.trim() || undefined);
         if (user?.email_confirmed_at || user?.confirmed_at || user?.identities?.length) {
           await refreshAuth();
           await completeFlow();
@@ -203,9 +204,10 @@ export default function LoginScreen() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior="padding">
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingBottom: 60, alignItems: "center" }}
         showsVerticalScrollIndicator={false}
       >
+       <View style={{ width: "100%", maxWidth: 520 }}>
         {/* Hero */}
         <View style={{ alignItems: "center", paddingTop: 80, paddingBottom: 32, gap: 12 }}>
           {/* App Logo */}
@@ -243,6 +245,18 @@ export default function LoginScreen() {
 
         {/* Form */}
         <View style={{ gap: 14 }}>
+          {mode === "signup" && (
+            <InputField
+              label="First name"
+              placeholder="Alex"
+              value={firstName}
+              onChangeText={setFirstName}
+              textContentType="givenName"
+              autoCapitalize="words"
+              returnKeyType="next"
+              error={errors.firstName}
+            />
+          )}
           <InputField
             label="Email"
             placeholder="you@example.com"
@@ -356,6 +370,7 @@ export default function LoginScreen() {
             </Pressable>
           </View>
         </View>
+       </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

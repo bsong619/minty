@@ -1,12 +1,13 @@
 import { useEffect, useCallback, useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { hasSeenOnboarding } from "@/lib/storage";
+import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/storage";
 import { useAuth } from "@/components/auth-provider";
 import { setPendingImageUri } from "@/lib/pending-scan";
 import { getScannedCards, refreshCardImageUrls } from "@/lib/card-service";
@@ -23,7 +24,7 @@ const HORIZ = 20;
 
 export default function ScanScreen() {
   const router = useRouter();
-  const { userId, userEmail, isAnonymous } = useAuth();
+  const { userId, userEmail, isAnonymous, firstName } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [appReady, setAppReady] = useState(false);
@@ -46,29 +47,37 @@ export default function ScanScreen() {
   useEffect(() => {
     if (!userId || !appReady) return;
     hasSeenOnboarding().then((seen) => {
-      if (!seen) router.push("/onboarding" as any);
+      if (!seen) {
+        markOnboardingSeen().catch(() => {});
+        router.push("/onboarding" as any);
+      }
     });
   }, [userId, appReady]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        if (userId) {
-          const cards = await getScannedCards(userId, { limit: 8 });
-          setRecents(await refreshCardImageUrls(cards));
-        } else {
-          const cards = await getCards();
-          setRecents(cards.slice(0, 8));
-        }
-      } catch {}
-    })();
-  }, [userId]);
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        try {
+          if (userId) {
+            const cards = await getScannedCards(userId, { limit: 8 });
+            setRecents(await refreshCardImageUrls(cards));
+          } else {
+            const cards = await getCards();
+            setRecents(cards.slice(0, 8));
+          }
+        } catch {}
+      })();
+    }, [userId])
+  );
 
   const handleImageSelected = useCallback((uri: string) => {
     setPendingImageUri(uri);
     router.push("/(tabs)/(scan)/analyzing");
   }, [router]);
 
+  // Apple Guideline 2.1 (AI): consent surfaced via a persistent visible
+  // banner on this screen (see "AI disclosure" below) + Privacy Policy.
+  // No blocking modal — using the Scan button is itself the consent action.
   const takePhoto = useCallback(async () => {
     if (!(await canScan())) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -91,24 +100,26 @@ export default function ScanScreen() {
   }, [handleImageSelected, router]);
 
   const greeting = greetingFor(new Date());
-  const displayName = isAnonymous ? "FRIEND" : (userEmail?.split("@")[0]?.toUpperCase() ?? "FRIEND");
+  const displayName = isAnonymous
+    ? "FRIEND"
+    : (firstName?.toUpperCase() || userEmail?.split("@")[0]?.toUpperCase() || "FRIEND");
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 100, paddingTop: 6 }}
+      contentContainerStyle={{ paddingBottom: 24, paddingTop: 6 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <View style={{ paddingHorizontal: HORIZ, paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <View style={{ paddingHorizontal: HORIZ, paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1, minWidth: 0 }}>
           <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: C.surface, borderWidth: 1, borderColor: C.borderStrong, justifyContent: "center", alignItems: "center" }}>
             <Icon name="shield" size={18} color={C.mint} strokeWidth={1.8} />
           </View>
-          <View>
+          <View style={{ flexShrink: 1, minWidth: 0 }}>
             <Text style={{ fontFamily: FONT.display, fontSize: 22, lineHeight: 22, color: C.text, letterSpacing: -0.5 }}>Minty</Text>
-            <Text style={{ fontFamily: FONT.mono, fontSize: 10, color: C.textTertiary, marginTop: 2, letterSpacing: 0.5 }}>{greeting}, {displayName}</Text>
+            <Text numberOfLines={1} style={{ fontFamily: FONT.mono, fontSize: 10, color: C.textTertiary, marginTop: 2, letterSpacing: 0.5 }}>{greeting}, {displayName}</Text>
           </View>
         </View>
         {/* Scan-counter pill — Pro hides it; free tier shows N / 5 LEFT. Tap = paywall. */}
@@ -122,15 +133,17 @@ export default function ScanScreen() {
             <Text style={{ fontFamily: FONT.monoBold, fontSize: 11, color: C.mint, letterSpacing: 0.5 }}>PRO</Text>
           </View>
         ) : (
-          <Pressable onPress={() => router.push("/paywall" as any)} style={({ pressed }) => ({
-            flexDirection: "row", alignItems: "center", gap: 6,
-            paddingVertical: 6, paddingHorizontal: 12, borderRadius: 100,
-            backgroundColor: C.surface, borderWidth: 1, borderColor: C.mintFaint,
-            opacity: pressed ? 0.7 : 1,
-          })}>
-            <Text style={{ fontFamily: FONT.monoBold, fontSize: 12, color: C.mint }}>{quota.remaining}</Text>
-            <Text style={{ fontFamily: FONT.mono, fontSize: 10, color: C.textTertiary, letterSpacing: 0.5 }}>/ {quota.limit} LEFT</Text>
-          </Pressable>
+          <View
+            style={{
+              flexDirection: "row", alignItems: "center", gap: 6,
+              paddingVertical: 7, paddingHorizontal: 12, borderRadius: 100,
+              backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+              flexShrink: 0,
+            }}
+          >
+            <Text style={{ fontFamily: FONT.uiBold, fontSize: 12, color: C.mint }}>{quota.remaining}</Text>
+            <Text numberOfLines={1} style={{ fontFamily: FONT.ui, fontSize: 11, color: C.textSecondary }}>scans left today</Text>
+          </View>
         )}
       </View>
 
@@ -147,22 +160,22 @@ export default function ScanScreen() {
             {/* Floating sample cards (decorative) */}
             <View style={{ position: "absolute", right: -30, top: 16, transform: [{ rotate: "8deg" }], opacity: 0.85, ...({ boxShadow: SHADOW.hero } as any) }}>
               <View style={{ borderRadius: 10, overflow: "hidden", position: "relative" }}>
-                <CardArt kind="drake" width={120} height={168} />
+                <CardArt kind="charizard" width={120} height={168} />
                 <HoloFoil intensity={0.5} />
               </View>
             </View>
             <View style={{ position: "absolute", right: 60, top: 30, transform: [{ rotate: "-6deg" }], opacity: 0.7 }}>
               <View style={{ borderRadius: 10, overflow: "hidden", ...({ boxShadow: SHADOW.card } as any) }}>
-                <CardArt kind="champion" width={110} height={154} />
+                <CardArt kind="pikachu" width={110} height={154} />
               </View>
             </View>
 
-            <View style={{ maxWidth: 200 }}>
+            <View>
               <View style={{ flexDirection: "row", alignSelf: "flex-start", alignItems: "center", gap: 5, paddingVertical: 3, paddingHorizontal: 8, borderRadius: 100, backgroundColor: C.mint }}>
                 <Text style={{ fontSize: 8, color: C.onMint }}>●</Text>
                 <Text style={{ fontFamily: FONT.monoBold, fontSize: 9, color: C.onMint, letterSpacing: 1 }}>READY</Text>
               </View>
-              <Text style={{ fontFamily: FONT.display, fontSize: 36, color: C.text, lineHeight: 38, letterSpacing: -1.5, marginTop: 12 }}>
+              <Text style={{ fontFamily: FONT.display, fontSize: 36, color: C.text, lineHeight: 38, letterSpacing: -1.5, marginTop: 12, maxWidth: 200 }}>
                 What&apos;s in{"\n"}your stack?
               </Text>
               <Pressable
@@ -177,12 +190,30 @@ export default function ScanScreen() {
                 })}
               >
                 <Icon name="camera" size={15} color={C.onMint} strokeWidth={2.5} />
-                <Text style={{ fontFamily: FONT.uiBold, fontSize: 14, color: C.onMint }}>Scan a card</Text>
+                <Text style={{ fontFamily: FONT.uiBold, fontSize: 14, color: C.onMint, paddingRight: 3 }}>Scan a card</Text>
               </Pressable>
             </View>
           </LinearGradient>
         </View>
       </View>
+
+      {/* AI disclosure banner — Apple Guideline 2.1 in-UI consent surface */}
+      <Pressable
+        onPress={() => router.push("/privacy" as any)}
+        style={({ pressed }) => ({
+          marginHorizontal: HORIZ, marginTop: 10,
+          flexDirection: "row", alignItems: "center", gap: 8,
+          paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10,
+          backgroundColor: C.surface, borderWidth: 1, borderColor: C.borderSubtle,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <Icon name="info" size={12} color={C.textTertiary} />
+        <Text numberOfLines={2} style={{ flex: 1, fontSize: 11, color: C.textTertiary, lineHeight: 15 }}>
+          Scans are analyzed by AI. Not used to train models.{" "}
+          <Text style={{ color: C.mint, fontFamily: FONT.uiBold }}>Learn more</Text>
+        </Text>
+      </Pressable>
 
       {/* Every scan includes — v2 value strip */}
       <View style={{ paddingHorizontal: HORIZ, paddingTop: 18 }}>
@@ -258,13 +289,10 @@ export default function ScanScreen() {
           <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, justifyContent: "center", alignItems: "center" }}>
             <Icon name="sparkles" size={28} color={C.mint} strokeWidth={1.5} />
           </View>
-          <Text style={{ fontSize: 14, color: C.text, fontFamily: FONT.uiBold, textAlign: "center" }}>Your first scan awaits</Text>
+          <Text style={{ fontSize: 14, color: C.text, fontFamily: FONT.uiBold, textAlign: "center", alignSelf: "stretch" }}>Your first scan awaits</Text>
           <Text style={{ fontSize: 12, color: C.textSecondary, textAlign: "center", maxWidth: 260, lineHeight: 18 }}>
             Tap &ldquo;Scan a card&rdquo; above to get an AI grade in seconds.
           </Text>
-          <Pressable onPress={pickImage}>
-            <Text style={{ fontSize: 12, color: C.mint, fontFamily: FONT.uiBold, marginTop: 4 }}>Or pick from library →</Text>
-          </Pressable>
         </View>
       )}
     </ScrollView>

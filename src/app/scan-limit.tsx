@@ -54,11 +54,11 @@ export default function ScanLimitScreen() {
           <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.mint, letterSpacing: 1 }}>FREE LIMIT REACHED</Text>
         </View>
 
-        <Text style={{ fontFamily: FONT.display, fontSize: 38, color: C.text, lineHeight: 40, letterSpacing: -1.5, textAlign: "center", marginBottom: 12 }}>
-          You&apos;ve used your{"\n"}{FREE_DAILY_LIMIT} free scans
+        <Text style={{ fontFamily: FONT.display, fontSize: 36, color: C.text, lineHeight: 42, textAlign: "center", marginBottom: 12, paddingHorizontal: 12 }}>
+          You&apos;ve used your{"\n"}{FREE_DAILY_LIMIT} daily scans
         </Text>
         <Text style={{ fontSize: 14, color: C.textSecondary, lineHeight: 20, textAlign: "center", maxWidth: 300, marginBottom: 28 }}>
-          Upgrade to Minty Pro for unlimited grading, market values, and HD share cards.
+          Come back tomorrow for another {FREE_DAILY_LIMIT} free scans. Your collection stays here while you wait.
         </Text>
 
         {/* Quota dots */}
@@ -73,19 +73,15 @@ export default function ScanLimitScreen() {
         </View>
 
         <Pressable
-          onPress={() => { router.back(); router.push("/paywall" as any); }}
+          onPress={() => router.back()}
           style={({ pressed }) => ({
             width: "100%", maxWidth: 320, paddingVertical: 16, borderRadius: 14,
             backgroundColor: C.mint, alignItems: "center",
             opacity: pressed ? 0.85 : 1,
             ...({ boxShadow: SHADOW.glow } as any),
-            marginBottom: 10,
           })}
         >
-          <Text style={{ fontFamily: FONT.uiBold, fontSize: 15, color: C.onMint }}>Upgrade to Pro</Text>
-        </Pressable>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={{ fontSize: 13, color: C.textSecondary, fontFamily: FONT.ui, paddingVertical: 8 }}>Maybe later</Text>
+          <Text style={{ fontFamily: FONT.uiBold, fontSize: 15, color: C.onMint }}>Got it</Text>
         </Pressable>
       </View>
     </View>

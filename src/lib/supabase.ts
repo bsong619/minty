@@ -43,9 +43,13 @@ export async function signInWithEmail(email: string, password: string) {
   return data.user;
 }
 
-export async function signUpWithEmail(email: string, password: string) {
+export async function signUpWithEmail(email: string, password: string, firstName?: string) {
   if (!supabase) throw new Error("Supabase is not configured.");
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: firstName ? { first_name: firstName } : undefined },
+  });
   if (error) throw error;
   return data.user;
 }
@@ -91,31 +95,32 @@ export async function signInWithGoogle(): Promise<string | null> {
   if (error || !data.url) throw error ?? new Error("No OAuth URL returned");
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type !== "success" || !result.url) return null;
 
-  // PKCE flow: extract ?code= from query params
-  const url = new URL(result.url);
-  const code = url.searchParams.get("code");
-  if (code) {
-    const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
-    if (sessionError) throw sessionError;
-    return sessionData.user?.id ?? null;
+  // If the browser returned us to the redirect URL with a code/tokens, process it.
+  if (result.type === "success" && result.url) {
+    const url = new URL(result.url);
+    const code = url.searchParams.get("code");
+    if (code) {
+      const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+      if (sessionError) throw sessionError;
+      if (sessionData.user?.id) return sessionData.user.id;
+    } else {
+      const hashParams = new URLSearchParams(url.hash.replace("#", ""));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      if (accessToken) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken ?? "",
+        });
+        if (sessionError) throw sessionError;
+        if (sessionData.user?.id) return sessionData.user.id;
+      }
+    }
   }
 
-  // Fallback: handle implicit flow tokens returned as URL fragment (#access_token=...)
-  const hashParams = new URLSearchParams(url.hash.replace("#", ""));
-  const accessToken = hashParams.get("access_token");
-  const refreshToken = hashParams.get("refresh_token");
-  if (accessToken) {
-    const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken ?? "",
-    });
-    if (sessionError) throw sessionError;
-    return sessionData.user?.id ?? null;
-  }
-
-  // Last resort: session may already be set
+  // Even on "dismiss"/"cancel", Supabase may have already established a session
+  // (auth state change can fire before the web view closes). Always check.
   const { data: { session } } = await supabase.auth.getSession();
   return session?.user?.id ?? null;
 }

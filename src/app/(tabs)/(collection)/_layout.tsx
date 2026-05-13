@@ -14,12 +14,7 @@ export default function CollectionLayout() {
     >
       <Stack.Screen
         name="index"
-        options={{
-          title: "Collection",
-          headerTitleStyle: { color: "#F5F5F7" },
-          headerTransparent: process.env.EXPO_OS === "ios",
-          headerBlurEffect: process.env.EXPO_OS === "ios" ? "dark" : undefined,
-        }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="details"

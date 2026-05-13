@@ -8,6 +8,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { markOnboardingSeen } from "@/lib/storage";
@@ -51,6 +52,7 @@ const STEPS = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [currentStep, setCurrentStep] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -200,7 +202,7 @@ export default function OnboardingScreen() {
       <View
         style={{
           padding: 24,
-          paddingBottom: 48,
+          paddingBottom: Math.max(insets.bottom + 16, 32),
           gap: 16,
           alignItems: "center",
         }}
@@ -230,6 +232,7 @@ export default function OnboardingScreen() {
             borderRadius: 16,
             borderCurve: "continuous",
             width: "100%",
+            maxWidth: 480,
             alignItems: "center",
             opacity: pressed ? 0.85 : 1,
             boxShadow: SHADOW.glow,

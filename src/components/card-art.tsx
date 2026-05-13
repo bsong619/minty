@@ -7,14 +7,16 @@ import { C, FONT } from "@/lib/theme";
 // stable gradient + abstract glyph so cards in the home/vault/results screens
 // look distinct without using any real card artwork.
 const PALETTES: Record<string, [string, string]> = {
-  drake:    ["#5B4D8C", "#3E2C66"],
-  champion: ["#7C4F2A", "#A66E3D"],
-  witch:    ["#3E2C66", "#5B3D8C"],
-  fish:     ["#2E5F8C", "#1F4666"],
-  knight:   ["#7C2E2E", "#A03E3E"],
-  sage:     ["#2E7C5F", "#3E8C70"],
-  athlete:  ["#7C4F2A", "#A66E3D"],
-  default:  ["#2A2A30", "#1A1A1E"],
+  charizard: ["#C0392B", "#E67E22"],
+  pikachu:   ["#F1C40F", "#E6A700"],
+  drake:     ["#5B4D8C", "#3E2C66"],
+  champion:  ["#7C4F2A", "#A66E3D"],
+  witch:     ["#3E2C66", "#5B3D8C"],
+  fish:      ["#2E5F8C", "#1F4666"],
+  knight:    ["#7C2E2E", "#A03E3E"],
+  sage:      ["#2E7C5F", "#3E8C70"],
+  athlete:   ["#7C4F2A", "#A66E3D"],
+  default:   ["#2A2A30", "#1A1A1E"],
 };
 
 export function CardArt({

@@ -7,7 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/components/auth-provider";
 import { AUTH_FLOW_KEY } from "@/app/_layout";
 import { supabase } from "@/lib/supabase";
-import { getScannedCards } from "@/lib/card-service";
+import { getScannedCards, deleteAllScannedCards } from "@/lib/card-service";
 import { getCards } from "@/lib/storage";
 import { GradedCard } from "@/lib/types";
 import { Icon, type IconName } from "@/components/icon";
@@ -53,7 +53,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { userEmail, isAnonymous, signOut, userId } = useAuth();
+  const { userEmail, isAnonymous, signOut, userId, firstName } = useAuth();
   const [stats, setStats] = useState({ scans: 0, gems: 0, avg: 0 });
   const [quota, setQuota] = useState<QuotaSnapshot>({ used: 0, limit: FREE_DAILY_LIMIT, remaining: FREE_DAILY_LIMIT, isPro: false });
 
@@ -79,10 +79,15 @@ export default function ProfileScreen() {
     Alert.alert("Clear all data", "This permanently deletes all your scanned cards. Cannot be undone.", [
       { text: "Cancel", style: "cancel" },
       { text: "Clear", style: "destructive", onPress: async () => {
-        // Targeted removal — never AsyncStorage.clear() which would nuke the
-        // Supabase auth session token and partially sign the user out.
-        await AsyncStorage.multiRemove(["minty_history", "minty_onboarding_seen"]);
-        Alert.alert("Done", "Local data cleared.");
+        try {
+          // Never AsyncStorage.clear() — would nuke the Supabase auth session.
+          await AsyncStorage.multiRemove(["minty_history", "minty_onboarding_seen"]);
+          if (userId) await deleteAllScannedCards(userId);
+          setStats({ scans: 0, gems: 0, avg: 0 });
+          Alert.alert("Done", "All scanned cards have been cleared.");
+        } catch (err: any) {
+          Alert.alert("Couldn't clear data", err?.message ?? "Please try again.");
+        }
       }},
     ]);
   };
@@ -135,124 +140,84 @@ export default function ProfileScreen() {
     );
   };
 
-  const displayName = isAnonymous ? "Guest collector" : (userEmail?.split("@")[0] ?? "Collector");
+  const displayName = isAnonymous
+    ? "Guest collector"
+    : (firstName || userEmail?.split("@")[0] || "Collector");
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: insets.bottom + 100, paddingTop: 12 }}
+      contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 24, paddingTop: 12 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* Profile header */}
-      <View style={{ alignItems: "center", gap: 12, paddingTop: 8 }}>
-        <View style={{ width: 80, height: 80, borderRadius: 24, backgroundColor: C.surface, borderWidth: 1, borderColor: C.borderStrong, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontFamily: FONT.display, fontSize: 36, color: C.mint, lineHeight: 36 }}>{displayName[0]?.toUpperCase()}</Text>
-        </View>
-        <View style={{ alignItems: "center", gap: 4 }}>
-          <Text style={{ fontFamily: FONT.display, fontSize: 24, color: C.text, lineHeight: 24, letterSpacing: -0.4 }}>{displayName}</Text>
-          {userEmail && !isAnonymous && (
-            <Text style={{ fontSize: 12, color: C.textSecondary }}>{userEmail}</Text>
-          )}
+      {/* Profile header — combined identity + lifetime scan count */}
+      <View style={{
+        backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+        borderRadius: 18, padding: 18, gap: 14,
+      }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: C.bg, borderWidth: 1, borderColor: C.borderStrong, justifyContent: "center", alignItems: "center" }}>
+            <Icon name="shield" size={22} color={C.mint} strokeWidth={1.8} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text numberOfLines={1} style={{ fontFamily: FONT.display, fontSize: 22, color: C.text, lineHeight: 28, paddingHorizontal: 2 }}>
+              {isAnonymous ? displayName : `Hi, ${displayName}`}
+            </Text>
+            {userEmail && !isAnonymous && (
+              <Text numberOfLines={1} style={{ fontSize: 12, color: C.textSecondary, marginTop: 2 }}>{userEmail}</Text>
+            )}
+          </View>
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={{ fontFamily: FONT.display, fontSize: 24, color: C.mint, lineHeight: 30, paddingHorizontal: 2 }}>{stats.scans}</Text>
+            <Text style={{ fontFamily: FONT.monoBold, fontSize: 9, color: C.textTertiary, marginTop: 2, letterSpacing: 1 }}>SCANS</Text>
+          </View>
         </View>
       </View>
 
-      {/* Stats card */}
-      <View style={{ flexDirection: "row", backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 16, paddingVertical: 14 }}>
-        <Stat label="SCANS" value={String(stats.scans)} />
-        <View style={{ width: 1, backgroundColor: C.borderSubtle }} />
-        <Stat label="GEMS" value={String(stats.gems)} accent={C.gold} />
-        <View style={{ width: 1, backgroundColor: C.borderSubtle }} />
-        <Stat label="AVG" value={stats.avg > 0 ? stats.avg.toFixed(1) : "—"} accent={C.mint} />
-      </View>
+      {/* Pro upsell removed for v1.0 — IAP returns in v1.1 after RevenueCat wiring. */}
 
-      {/* Pro: upsell hero (free) or manage-subscription row (subscribers). */}
-      {quota.isPro ? (
-        <Pressable
-          onPress={() => router.push("/customer-center" as any)}
-          style={({ pressed }) => ({
-            flexDirection: "row", alignItems: "center", gap: 12,
-            backgroundColor: C.surface, borderWidth: 1, borderColor: C.mintFaint,
-            borderRadius: 16, padding: 14, opacity: pressed ? 0.85 : 1,
-          })}
-        >
-          <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: C.mintFaint, justifyContent: "center", alignItems: "center" }}>
-            <Icon name="crown" size={20} color={C.mint} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, fontFamily: FONT.uiBold, color: C.text }}>Minty Pro · active</Text>
-            <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>Manage subscription</Text>
-          </View>
-          <Icon name="chevR" size={18} color={C.textTertiary} />
-        </Pressable>
-      ) : (
-        <Pressable onPress={() => router.push("/paywall" as any)} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
-          <View style={{ position: "relative", overflow: "hidden", borderRadius: 16, borderWidth: 1, borderColor: C.mintFaint }}>
-            <LinearGradient
-              colors={[`${C.mint}38`, `${C.gold}26`]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ padding: 16 }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                <Text style={{ fontSize: 14 }}>✦</Text>
-                <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.mint, letterSpacing: 1.5 }}>MINTY PRO</Text>
-              </View>
-              <Text style={{ fontFamily: FONT.display, fontSize: 22, color: C.text, lineHeight: 24, letterSpacing: -0.5, marginBottom: 4 }}>
-                Unlock unlimited scans
-              </Text>
-              <Text style={{ fontSize: 12, color: C.textSecondary, lineHeight: 16, maxWidth: 260 }}>
-                You&apos;ve used {quota.used} of {quota.limit} free scans today. Upgrade to keep grading without limits.
-              </Text>
-              <View style={{
-                marginTop: 12, alignSelf: "flex-start",
-                flexDirection: "row", alignItems: "center", gap: 6,
-                paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10,
-                backgroundColor: C.mint,
-                ...({ boxShadow: SHADOW.glow } as any),
-              }}>
-                <Text style={{ fontFamily: FONT.uiBold, fontSize: 13, color: C.onMint }}>Get more scans</Text>
-                <Icon name="arrowR" size={13} color={C.onMint} strokeWidth={2.5} />
-              </View>
-            </LinearGradient>
-          </View>
-        </Pressable>
+      {isAnonymous && (
+        <Section title="ACCOUNT">
+          <Row icon="user" label="Sign in to save your collection" onPress={() => rootRouter.push("/login" as any)} />
+        </Section>
       )}
-
-      {/* Account */}
-      <Section title="ACCOUNT">
-        <Row icon="user" label={isAnonymous ? "Sign in to save your collection" : "Signed in"} onPress={isAnonymous ? () => rootRouter.push("/login" as any) : undefined} />
-        <Divider />
-        <Row icon="logout" label="Sign Out" onPress={() => {
-          AsyncStorage.removeItem(AUTH_FLOW_KEY).catch(() => {});
-          signOut().catch(() => {});
-          rootRouter.replace("/login" as any);
-        }} destructive />
-      </Section>
 
       {/* General */}
       <Section title="GENERAL">
         <Row icon="info" label="How to get the best grade" onPress={() => AsyncStorage.removeItem("minty_onboarding_seen").then(() => router.push("/onboarding" as any))} />
-        <Divider />
-        <Row icon="info" label="App Version" value="1.0.0" />
       </Section>
 
-      {/* Legal */}
-      <Section title="LEGAL">
+      {/* About + Account & Data — Delete Account surfaced at top level
+          for Apple Guideline 5.1.1(v) discoverability. */}
+      <Section title="ABOUT">
         <Row icon="lock" label="Privacy Policy" onPress={() => router.push("/privacy" as any)} />
         <Divider />
         <Row icon="doc" label="Terms of Service" onPress={() => router.push("/terms" as any)} />
       </Section>
 
-      {/* Data */}
-      <Section title="DATA">
+      <Section title="ACCOUNT & DATA">
         <Row icon="history" label="Clear All Data" onPress={handleClearData} destructive />
         <Divider />
         <Row icon="logout" label="Delete Account" onPress={handleDeleteAccount} destructive />
       </Section>
 
-      <Text style={{ fontSize: 11, color: C.textDisabled, textAlign: "center", lineHeight: 16, paddingHorizontal: 16 }}>
-        Minty is not affiliated with any professional grading service.{"\n"}Grade predictions are AI estimates only.
+      {/* Sign out — subtle text link, not a destructive Row */}
+      {!isAnonymous && (
+        <Pressable
+          onPress={() => {
+            AsyncStorage.removeItem(AUTH_FLOW_KEY).catch(() => {});
+            signOut().catch(() => {});
+            rootRouter.replace("/login" as any);
+          }}
+          style={({ pressed }) => ({ alignSelf: "center", paddingVertical: 8, paddingHorizontal: 16, opacity: pressed ? 0.6 : 1 })}
+        >
+          <Text style={{ fontSize: 13, color: C.textTertiary, fontFamily: FONT.ui }}>Sign out</Text>
+        </Pressable>
+      )}
+
+      <Text style={{ fontSize: 11, color: C.textDisabled, textAlign: "center", lineHeight: 16, paddingHorizontal: 16, marginTop: 4 }}>
+        v1.0.0 · Minty is not affiliated with any professional grading service.{"\n"}Grade predictions are AI estimates only.
       </Text>
     </ScrollView>
   );
@@ -261,7 +226,7 @@ export default function ProfileScreen() {
 function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
-      <Text style={{ fontFamily: FONT.display, fontSize: 24, color: accent ?? C.text, lineHeight: 24, letterSpacing: -0.5 }}>{value}</Text>
+      <Text style={{ fontFamily: FONT.display, fontSize: 24, color: accent ?? C.text, lineHeight: 30, paddingHorizontal: 4 }}>{value}</Text>
       <Text style={{ fontFamily: FONT.monoBold, fontSize: 9, color: C.textTertiary, marginTop: 4, letterSpacing: 1 }}>{label}</Text>
     </View>
   );

@@ -75,12 +75,21 @@ function AuthGate({ onReady }: { onReady: () => void }) {
     });
   }, [loading, userId]);
 
-  // Redirect to login on subsequent checks (e.g. after token expiry)
+  // Bidirectional guard: signed-out users must stay in the auth flow, and
+  // signed-in users must never reach a login/forgot/reset screen (e.g. via
+  // swipe-back gesture). Runs on every navigation.
   useEffect(() => {
     if (!resolved || loading) return;
     AsyncStorage.getItem(AUTH_FLOW_KEY).then((val) => {
-      if (!val && segments[0] !== "login") {
+      const inAuthFlow =
+        segments[0] === "login" ||
+        segments[0] === "forgot-password" ||
+        segments[0] === "reset-password" ||
+        segments[0] === "auth";
+      if (!val && !inAuthFlow) {
         router.replace("/login");
+      } else if (val && inAuthFlow) {
+        router.replace("/(tabs)/(scan)" as any);
       }
     });
   }, [segments, resolved]);
@@ -113,7 +122,12 @@ export default function Layout() {
   });
   // If a font fails to load, treat as "loaded" so we don't soft-lock the user
   // on a black screen. They get system font fallback.
-  const fontsReady = fontsLoaded || !!fontError;
+  const [fontTimeout, setFontTimeout] = useState(false);
+  const fontsReady = fontsLoaded || !!fontError || fontTimeout;
+  useEffect(() => {
+    const t = setTimeout(() => setFontTimeout(true), 5000);
+    return () => clearTimeout(t);
+  }, []);
 
   // Check for OTA updates on launch
   useEffect(() => {
@@ -129,17 +143,15 @@ export default function Layout() {
     })();
   }, []);
 
-  const handleReady = () => {
-    if (fontsReady) {
+  const [authResolved, setAuthResolved] = useState(false);
+  const handleReady = () => setAuthResolved(true);
+
+  useEffect(() => {
+    if (fontsReady && authResolved) {
       setReady(true);
       SplashScreen.hideAsync();
     }
-  };
-
-  // If fonts finish loading after auth resolves, hide splash anyway.
-  useEffect(() => {
-    if (fontsReady && ready) SplashScreen.hideAsync();
-  }, [fontsReady, ready]);
+  }, [fontsReady, authResolved]);
 
   return (
     <ThemeProvider>

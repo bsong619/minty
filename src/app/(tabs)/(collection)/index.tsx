@@ -17,7 +17,7 @@ const PADDING = 20;
 const GAP = 8;
 const COLUMNS = 3;
 
-const FILTERS = ["All", "Gems", "Mint+", "Favorites"] as const;
+const FILTERS = ["All", "Favorites"] as const;
 type Filter = typeof FILTERS[number];
 
 export default function VaultScreen() {
@@ -53,35 +53,59 @@ export default function VaultScreen() {
 
   const filtered = useMemo(() => {
     switch (filter) {
-      case "Gems":      return cards.filter((c) => c.result.overallGrade >= 9.5);
-      case "Mint+":     return cards.filter((c) => c.result.overallGrade >= 9);
       case "Favorites": return cards.filter((c) => c.favorite);
       default:          return cards;
     }
   }, [cards, filter]);
 
-  const totalValue = cards.length * 65; // placeholder estimate until real market data
+  // Per-card estimated value comes from `card.estimatedValue` (avg of last 5
+  // sold listings from eBay, cached at scan time). Cards scanned before the
+  // pricing service was wired up will be missing this field — they contribute 0.
+  const totalValue = cards.reduce((sum, c) => sum + ((c as any).estimatedValue ?? 0), 0);
+  const pricedCount = cards.filter((c) => (c as any).estimatedValue != null).length;
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 100, paddingTop: 6 }}
+      contentContainerStyle={{ paddingBottom: 24, paddingTop: 6 }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.mint} />}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <View style={{ paddingHorizontal: PADDING, paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <View>
-          <Text style={{ fontFamily: FONT.display, fontSize: 30, color: C.text, lineHeight: 30, letterSpacing: -0.5 }}>The Vault</Text>
+      <View style={{ paddingHorizontal: PADDING, paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <View style={{ flexShrink: 1 }}>
+          <Text style={{ fontFamily: FONT.display, fontSize: 30, color: C.text, lineHeight: 34, letterSpacing: -0.5 }}>The Vault</Text>
           <Text style={{ fontSize: 12, color: C.textSecondary, marginTop: 4 }}>
-            {cards.length} card{cards.length === 1 ? "" : "s"}{cards.length > 0 ? ` · est. value $${totalValue.toLocaleString()}` : ""}
+            {cards.length} card{cards.length === 1 ? "" : "s"}
           </Text>
         </View>
         <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, justifyContent: "center", alignItems: "center" }}>
           <Icon name="filter" size={16} color={C.text} />
         </View>
       </View>
+
+      {/* Vault value card */}
+      {cards.length > 0 && (
+        <View style={{ marginHorizontal: PADDING, marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border }}>
+          <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.textTertiary, letterSpacing: 1.5 }}>ESTIMATED VALUE</Text>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, marginTop: 6 }}>
+            <Text style={{ fontFamily: FONT.display, fontSize: 32, color: C.mint, lineHeight: 36 }}>
+              {pricedCount > 0 ? `$${totalValue.toLocaleString()}` : "—"}
+            </Text>
+            {pricedCount > 0 && pricedCount < cards.length && (
+              <Text style={{ fontSize: 11, color: C.textTertiary }}>
+                ({pricedCount} of {cards.length} priced)
+              </Text>
+            )}
+          </View>
+          <Text style={{ fontSize: 11, color: C.textTertiary, marginTop: 4 }}>
+            {pricedCount > 0
+              ? "Based on avg. of last 5 sold listings"
+              : "Market values coming soon"}
+          </Text>
+        </View>
+      )}
 
       {/* Filter chips */}
       <ScrollView
@@ -102,7 +126,7 @@ export default function VaultScreen() {
                 opacity: pressed ? 0.85 : 1,
               })}
             >
-              <Text style={{ fontSize: 12, fontFamily: FONT.uiBold, color: active ? C.onMint : C.textSecondary }}>{f}</Text>
+              <Text style={{ fontSize: 12, fontFamily: FONT.uiBold, color: active ? C.onMint : C.textSecondary, paddingHorizontal: 2 }}>{f}</Text>
             </Pressable>
           );
         })}
@@ -114,25 +138,25 @@ export default function VaultScreen() {
           <View style={{ width: 80, height: 80, borderRadius: 22, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, justifyContent: "center", alignItems: "center" }}>
             <Icon name="stack" size={32} color={C.mint} strokeWidth={1.5} />
           </View>
-          <Text style={{ fontSize: 17, fontFamily: FONT.uiBold, color: C.textSecondary, textAlign: "center" }}>
-            {filter === "All" ? "Your vault is empty" : `No ${filter.toLowerCase()} yet`}
+          <Text style={{ fontSize: 17, fontFamily: FONT.uiBold, color: C.textSecondary, textAlign: "center", alignSelf: "stretch", paddingHorizontal: 4 }}>
+            {filter === "All" || cards.length === 0 ? "No scans yet" : "Nothing favorited yet"}
           </Text>
           <Text style={{ fontSize: 13, color: C.textTertiary, textAlign: "center", lineHeight: 20, maxWidth: 280 }}>
-            {filter === "All"
-              ? "Scan your first card to start collecting."
-              : "Keep scanning — your best pulls will land here."}
+            {filter === "All" || cards.length === 0
+              ? "Scan your first card to start collecting!"
+              : "Tap the heart on any card in your vault to favorite it."}
           </Text>
-          {filter === "All" && (
-            <Pressable
-              onPress={() => router.push("/(tabs)/(scan)" as any)}
-              style={({ pressed }) => ({
-                marginTop: 8, paddingVertical: 12, paddingHorizontal: 22, borderRadius: 12,
-                backgroundColor: C.mint, opacity: pressed ? 0.85 : 1,
-              })}
-            >
-              <Text style={{ fontFamily: FONT.uiBold, color: C.onMint, fontSize: 14 }}>Scan a card</Text>
-            </Pressable>
-          )}
+          <Pressable
+            onPress={() => router.push("/(tabs)/(scan)" as any)}
+            style={({ pressed }) => ({
+              marginTop: 8, paddingVertical: 12, paddingHorizontal: 22, borderRadius: 12,
+              backgroundColor: C.mint, opacity: pressed ? 0.85 : 1,
+              flexDirection: "row", alignItems: "center", gap: 8,
+            })}
+          >
+            <Icon name="camera" size={15} color={C.onMint} strokeWidth={2.5} />
+            <Text style={{ fontFamily: FONT.uiBold, color: C.onMint, fontSize: 14, paddingRight: 4 }}>Scan a card</Text>
+          </Pressable>
         </View>
       ) : (
         <View style={{ paddingHorizontal: PADDING, paddingTop: 16, flexDirection: "row", flexWrap: "wrap", gap: GAP }}>
@@ -154,12 +178,11 @@ export default function VaultScreen() {
                   {grade >= 9.5 && <HoloFoil intensity={0.35} />}
                   <View style={{
                     position: "absolute", top: 5, right: 5,
-                    width: 28, height: 28, borderRadius: 14,
-                    backgroundColor: "rgba(11,13,14,0.85)",
-                    borderWidth: 1, borderColor: `${color}80`,
+                    minWidth: 30, height: 30, paddingHorizontal: 7, borderRadius: 15,
+                    backgroundColor: color,
                     justifyContent: "center", alignItems: "center",
                   }}>
-                    <Text style={{ fontFamily: FONT.display, fontSize: 14, color, lineHeight: 14 }}>{grade}</Text>
+                    <Text style={{ fontFamily: FONT.uiHeavy, fontSize: 13, color: "#0A0A0C", textAlign: "center", includeFontPadding: false }}>{grade}</Text>
                   </View>
                   {card.favorite && (
                     <View style={{

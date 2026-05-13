@@ -116,9 +116,10 @@ function FallbackPaywall() {
         style={{ position: "absolute", top: 0, left: 0, right: 0, height: 360 }}
       />
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 24, paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 40, alignItems: "center" }}
         showsVerticalScrollIndicator={false}
       >
+       <View style={{ width: "100%", maxWidth: 520, paddingHorizontal: 24 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <Pressable onPress={() => router.back()} hitSlop={8}>
             <Icon name="close" size={20} color={C.text} />
@@ -133,7 +134,7 @@ function FallbackPaywall() {
             <Text style={{ fontSize: 12 }}>✦</Text>
             <Text style={{ fontFamily: FONT.monoBold, fontSize: 10, color: C.mint, letterSpacing: 1 }}>MINTY PRO</Text>
           </View>
-          <Text style={{ fontFamily: FONT.display, fontSize: 44, color: C.text, lineHeight: 44, letterSpacing: -1.5, marginTop: 14, textAlign: "center" }}>
+          <Text style={{ fontFamily: FONT.display, fontSize: 44, color: C.text, lineHeight: 52, marginTop: 14, textAlign: "center", paddingHorizontal: 12 }}>
             Grade like a{"\n"}
             <Text style={{ color: C.mint, fontFamily: FONT.displayItalic }}>pro</Text>
           </Text>
@@ -169,7 +170,7 @@ function FallbackPaywall() {
               borderColor: plan === "annual" ? C.mint : C.border,
             }}
           >
-            <View style={{ position: "absolute", top: -10, right: 14, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 100, backgroundColor: C.gold }}>
+            <View style={{ position: "absolute", top: -10, left: 14, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 100, backgroundColor: C.gold }}>
               <Text style={{ fontFamily: FONT.monoBold, fontSize: 9, color: C.onMint, letterSpacing: 1 }}>BEST VALUE</Text>
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -178,7 +179,7 @@ function FallbackPaywall() {
                 <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>$3.33/mo · billed yearly</Text>
               </View>
               <View style={{ alignItems: "flex-end" }}>
-                <Text style={{ fontFamily: FONT.display, fontSize: 24, color: plan === "annual" ? C.mint : C.text, lineHeight: 24 }}>
+                <Text style={{ fontFamily: FONT.display, fontSize: 24, color: plan === "annual" ? C.mint : C.text, lineHeight: 30, paddingHorizontal: 2 }}>
                   {annualPkg?.product.priceString ?? "$39.99"}
                 </Text>
                 <Text style={{ fontSize: 10, color: C.textTertiary, marginTop: 2, textDecorationLine: "line-through" }}>$95.88</Text>
@@ -199,7 +200,7 @@ function FallbackPaywall() {
                 <Text style={{ fontSize: 14, fontFamily: FONT.uiBold, color: C.text }}>Monthly</Text>
                 <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>Cancel anytime</Text>
               </View>
-              <Text style={{ fontFamily: FONT.display, fontSize: 22, color: plan === "monthly" ? C.mint : C.text, lineHeight: 22 }}>
+              <Text style={{ fontFamily: FONT.display, fontSize: 22, color: plan === "monthly" ? C.mint : C.text, lineHeight: 28, paddingHorizontal: 2 }}>
                 {monthlyPkg?.product.priceString ?? "$7.99"}
               </Text>
             </View>
@@ -226,9 +227,18 @@ function FallbackPaywall() {
             <Text style={{ fontFamily: FONT.uiBold, fontSize: 15, color: C.onMint }}>Start 7-day free trial</Text>
           )}
         </Pressable>
-        <Text style={{ textAlign: "center", marginTop: 10, fontSize: 10, color: C.textTertiary, lineHeight: 14 }}>
-          Then $39.99/year. Auto-renews until canceled.
+        <Text style={{ textAlign: "center", marginTop: 10, fontSize: 11, color: C.textTertiary, lineHeight: 16, paddingHorizontal: 8 }}>
+          Annual: $39.99/year ($3.33/month). Monthly: $7.99/month. Subscription auto-renews until canceled at least 24 hours before the end of the current period. Manage or cancel in your Apple ID account settings.
         </Text>
+        <View style={{ flexDirection: "row", justifyContent: "center", gap: 16, marginTop: 12 }}>
+          <Pressable onPress={() => router.push("/terms" as any)} hitSlop={8}>
+            <Text style={{ fontSize: 11, color: C.textSecondary, textDecorationLine: "underline" }}>Terms of Use (EULA)</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push("/privacy" as any)} hitSlop={8}>
+            <Text style={{ fontSize: 11, color: C.textSecondary, textDecorationLine: "underline" }}>Privacy Policy</Text>
+          </Pressable>
+        </View>
+       </View>
       </ScrollView>
     </View>
   );

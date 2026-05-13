@@ -4,6 +4,7 @@ import { ensureAuth, signOut as supabaseSignOut, supabase, isSupabaseConfigured 
 interface AuthContextValue {
   userId: string | null;
   userEmail: string | null;
+  firstName: string | null;
   isAnonymous: boolean;
   loading: boolean;
   pendingLogout: boolean;
@@ -15,6 +16,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue>({
   userId: null,
   userEmail: null,
+  firstName: null,
   isAnonymous: true,
   loading: true,
   pendingLogout: false,
@@ -27,9 +29,16 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+function extractFirstName(user: any): string | null {
+  if (!user) return null;
+  const meta = user.user_metadata ?? {};
+  return meta.first_name ?? meta.given_name ?? meta.name?.split(" ")?.[0] ?? null;
+}
+
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [loading, setLoading] = useState(true);
   const [pendingLogout, setPendingLogout] = useState(false);
@@ -42,6 +51,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { user } } = await supabase.auth.getUser();
         setUserEmail(user?.email ?? null);
         setIsAnonymous(user?.is_anonymous ?? true);
+        setFirstName(extractFirstName(user));
       }
     } catch (err) {
       console.warn("Auth error:", err);
@@ -58,6 +68,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       setUserId(session?.user?.id ?? null);
       setUserEmail(session?.user?.email ?? null);
       setIsAnonymous(session?.user?.is_anonymous ?? true);
+      setFirstName(extractFirstName(session?.user));
     });
     return () => subscription.unsubscribe();
   }, [loadAuth]);
@@ -66,6 +77,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     await supabaseSignOut();
     setUserId(null);
     setUserEmail(null);
+    setFirstName(null);
     setIsAnonymous(true);
     setPendingLogout(false);
   }, []);
@@ -73,7 +85,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const requestLogout = useCallback(() => setPendingLogout(true), []);
 
   return (
-    <AuthContext value={{ userId, userEmail, isAnonymous, loading, pendingLogout, signOut: handleSignOut, requestLogout, refreshAuth: loadAuth }}>
+    <AuthContext value={{ userId, userEmail, firstName, isAnonymous, loading, pendingLogout, signOut: handleSignOut, requestLogout, refreshAuth: loadAuth }}>
       {children}
     </AuthContext>
   );
