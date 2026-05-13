@@ -66,24 +66,47 @@ export async function analyzeCard(imageUri: string, backImageUri?: string): Prom
   const accessToken = session?.access_token;
   if (!accessToken) throw new Error("Please sign in to grade a card");
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  // WiFi-vs-cellular reliability: home WiFi uplinks are often 5–15 Mbps which
+  // means a 2–4 MB JSON body takes 3–8 s to push, plus 5–15 s for Claude
+  // analysis. The old 30 s ceiling hit before the request finished. Bumped to
+  // 90 s, with one auto-retry on network errors so a single transient TCP hiccup
+  // doesn't kill a scan. `Connection: close` avoids stale keep-alive sockets
+  // that some consumer routers hold past their NAT idle timeout.
+  const body = JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg", backImageBase64: backBase64 });
+  const doFetch = async (): Promise<Response> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90_000);
+    try {
+      return await fetch(GRADE_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          Connection: "close",
+        },
+        body,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
   let res: Response;
   try {
-    res = await fetch(GRADE_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg", backImageBase64: backBase64 }),
-      signal: controller.signal,
-    });
+    res = await doFetch();
   } catch (e: any) {
-    if (e?.name === "AbortError") throw new Error("Grading timed out. Please try again.");
-    throw e;
-  } finally {
-    clearTimeout(timeout);
+    // Retry once on network / abort errors. HTTP error statuses (4xx/5xx) don't
+    // throw — they come back as res.ok=false and are handled below.
+    if (e?.name === "AbortError" || e?.message?.toLowerCase()?.includes("network")) {
+      try {
+        res = await doFetch();
+      } catch (retryErr: any) {
+        if (retryErr?.name === "AbortError") throw new Error("Grading timed out. Try again on a different network.");
+        throw retryErr;
+      }
+    } else {
+      throw e;
+    }
   }
   if (!res.ok) {
     if (res.status === 429) throw new Error("Daily grade limit reached. Try again later.");
