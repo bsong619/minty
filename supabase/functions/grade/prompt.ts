@@ -1,13 +1,15 @@
-// Loads the canonical grading prompt from prompt.md at module-init time.
+// The canonical grading prompt is authored in prompt.md and inlined into
+// prompt-content.ts by the regenerate script. We do NOT read prompt.md at
+// runtime because the Supabase CLI's deploy bundler follows code imports
+// only — it doesn't ship co-located .md assets, which means a runtime
+// Deno.readTextFile against prompt.md crashes with "path not found" in
+// the Edge runtime (event_message NotFound, deployment versions 11–13).
 //
-// prompt.md is the single source of truth — edit it, redeploy the function,
-// and the new prompt is live. Keeping the prompt in markdown lets non-engineers
-// review/tune it via PRs without touching TypeScript.
-//
-// Supabase Edge Functions bundle files colocated with the function entrypoint,
-// so prompt.md ships alongside index.ts when you run `supabase functions deploy`.
-const promptUrl = new URL("./prompt.md", import.meta.url);
-export const GRADE_PROMPT = await Deno.readTextFile(promptUrl);
+// To update the prompt: edit prompt.md, run scripts/regenerate-prompt.sh
+// (which regenerates prompt-content.ts), commit both, then
+// `supabase functions deploy grade`.
+import { PROMPT_MD } from "./prompt-content.ts";
+export const GRADE_PROMPT = PROMPT_MD;
 
 // Convenience split: the markdown has two H2 sections, "## SYSTEM" and "## USER",
 // which map to Anthropic's system block (cacheable) and user message (per-request,
