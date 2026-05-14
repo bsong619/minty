@@ -19,11 +19,11 @@ async function cropToCardArea(uri: string, w?: number, h?: number): Promise<stri
     const photoRatio = w / h;
     if (photoRatio < CARD_WIDTH_RATIO) {
       // Photo taller than card — width is the constraint
-      cropW = w * 0.92;
+      cropW = w * 0.96;
       cropH = cropW / CARD_WIDTH_RATIO;
     } else {
       // Photo wider than card — height is the constraint
-      cropH = h * 0.92;
+      cropH = h * 0.96;
       cropW = cropH * CARD_WIDTH_RATIO;
     }
     const originX = Math.round((w - cropW) / 2);
@@ -83,7 +83,7 @@ export default function CameraScreen() {
   // Tighter frame guide pushes users to hold the camera closer so the card
   // fills more of the photo. Combined with the post-capture crop below, this
   // dramatically increases the card's pixel share in what Claude sees.
-  const cutoutWidth = Math.min(screenWidth * 0.92, (screenHeight - 240) / CARD_RATIO);
+  const cutoutWidth = Math.min(screenWidth * 0.96, (screenHeight - 200) / CARD_RATIO);
   const cutoutHeight = cutoutWidth * CARD_RATIO;
   const cutoutTop = (screenHeight - cutoutHeight) / 2;
   const cutoutLeft = (screenWidth - cutoutWidth) / 2;
@@ -154,7 +154,13 @@ export default function CameraScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
-      <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back" />
+      <CameraView
+        ref={cameraRef}
+        style={{ flex: 1 }}
+        facing="back"
+        autofocus="on"
+        zoom={0.05}
+      />
 
       {/* Overlay — top */}
       <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: cutoutTop, backgroundColor: "rgba(0,0,0,0.6)" }} />

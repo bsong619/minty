@@ -38,7 +38,9 @@ async function getBase64(imageUri: string): Promise<string> {
     const ref = await ImageManipulator.manipulate(localUri)
       .resize({ width: 1568 })
       .renderAsync();
-    const result = await ref.saveAsync({ format: SaveFormat.JPEG, compress: 0.9 });
+    // 0.85 keeps the print-line / micro-whitening detail Claude needs for 9 vs 10
+    // while cutting ~25% off the upload payload vs 0.9 — meaningful on slow WiFi.
+    const result = await ref.saveAsync({ format: SaveFormat.JPEG, compress: 0.85 });
     // Read the saved file as base64
     if (process.env.EXPO_OS !== "web" && result.uri) {
       return await FileSystem.readAsStringAsync(result.uri, { encoding: "base64" });
@@ -75,7 +77,7 @@ export async function analyzeCard(imageUri: string, backImageUri?: string): Prom
   const body = JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg", backImageBase64: backBase64 });
   const doFetch = async (): Promise<Response> => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 90_000);
+    const timeout = setTimeout(() => controller.abort(), 150_000);
     try {
       return await fetch(GRADE_ENDPOINT, {
         method: "POST",
