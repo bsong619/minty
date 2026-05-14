@@ -395,7 +395,7 @@ Deno.serve(async (req: Request) => {
     disqualifyingFlaws,
     obscuredRegions,
     perGraderPredictions,
-    tips: sanitizeStringArray(result.tips, 3, 600),
+    tips: sanitizeStringArray(result.tips, 3, 200),
     cardName: sanitizeStringField(result.cardName, 120) ?? "Unknown Card",
     pokemonName: sanitizeStringField(result.pokemonName, 60) ?? null,
     cardSet: sanitizeStringField(result.cardSet, 120) ?? "Unknown Set",
