@@ -88,38 +88,49 @@ export default function CameraScreen() {
 function NativeScannerScreen() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [showManual, setShowManual] = useState(false);
   const launchedRef = useRef(false);
+
+  const launchScanner = async () => {
+    try {
+      const result = await DocumentScanner.scanDocument({
+        croppedImageQuality: 100,
+        maxNumDocuments: 2,
+        responseType: DocumentScannerResponseType?.ImageFilePath ?? "imageFilePath",
+      });
+      const cancelled = result.status === (DocumentScannerStatus?.Cancel ?? "cancel");
+      if (cancelled) { router.back(); return; }
+      const imgs = result.scannedImages ?? [];
+      if (imgs.length === 0) { router.back(); return; }
+      if (imgs.length === 1) {
+        setPendingImageUri(imgs[0]);
+      } else {
+        setPendingImageUris(imgs[0], imgs[1]);
+      }
+      router.replace("/(tabs)/(scan)/analyzing");
+    } catch (e: any) {
+      console.error("DocumentScanner error:", e);
+      const msg = (e?.message ?? "").toLowerCase();
+      if (msg.includes("permission") || msg.includes("denied") || msg.includes("authorized")) {
+        setError("permission");
+      } else {
+        setError(e?.message ?? "Couldn't open the scanner.");
+      }
+    }
+  };
 
   useEffect(() => {
     if (launchedRef.current) return;
     launchedRef.current = true;
-    (async () => {
-      try {
-        const result = await DocumentScanner.scanDocument({
-          croppedImageQuality: 100,
-          maxNumDocuments: 2,
-          responseType: DocumentScannerResponseType?.ImageFilePath ?? "imageFilePath",
-        });
-        const cancelled = result.status === (DocumentScannerStatus?.Cancel ?? "cancel");
-        if (cancelled) { router.back(); return; }
-        const imgs = result.scannedImages ?? [];
-        if (imgs.length === 0) { router.back(); return; }
-        if (imgs.length === 1) {
-          setPendingImageUri(imgs[0]);
-        } else {
-          setPendingImageUris(imgs[0], imgs[1]);
-        }
-        router.replace("/(tabs)/(scan)/analyzing");
-      } catch (e: any) {
-        console.error("DocumentScanner error:", e);
-        const msg = (e?.message ?? "").toLowerCase();
-        if (msg.includes("permission") || msg.includes("denied") || msg.includes("authorized")) {
-          setError("permission");
-        } else {
-          setError(e?.message ?? "Couldn't open the scanner.");
-        }
-      }
-    })();
+    // The parent screen is presented as a fullScreenModal — calling
+    // scanDocument while iOS is still transitioning that modal causes the
+    // scanner's own presentation to silently fail (black screen). Delay
+    // long enough for the parent transition to settle.
+    const t = setTimeout(launchScanner, 600);
+    // Safety net: if the scanner is still nowhere to be seen after 4s,
+    // surface a manual retry button so the user can recover.
+    const manualTimer = setTimeout(() => setShowManual(true), 4000);
+    return () => { clearTimeout(t); clearTimeout(manualTimer); };
   }, [router]);
 
   if (error === "permission") {
@@ -157,7 +168,26 @@ function NativeScannerScreen() {
     );
   }
 
-  return <View style={{ flex: 1, backgroundColor: "#000" }} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: "#000", justifyContent: "center", alignItems: "center" }}>
+      {showManual && (
+        <View style={{ alignItems: "center", gap: 16, padding: 32 }}>
+          <Text style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", textAlign: "center" }}>
+            Scanner didn&apos;t open. Tap below to try again.
+          </Text>
+          <Pressable
+            onPress={() => { launchedRef.current = false; setShowManual(false); launchScanner(); }}
+            style={({ pressed }) => ({ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, backgroundColor: C.mint, opacity: pressed ? 0.85 : 1 })}
+          >
+            <Text style={{ fontFamily: FONT.uiBold, fontSize: 14, color: C.onMint, paddingRight: 2 }}>Open scanner</Text>
+          </Pressable>
+          <Pressable onPress={() => router.back()}>
+            <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", paddingVertical: 8 }}>Cancel</Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
+  );
 }
 
 function FallbackCameraScreen() {
