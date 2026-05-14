@@ -118,7 +118,7 @@ export default function ScanScreen() {
             <Icon name="shield" size={18} color={C.mint} strokeWidth={1.8} />
           </View>
           <View style={{ flexShrink: 1, minWidth: 0 }}>
-            <Text style={{ fontFamily: FONT.display, fontSize: 22, lineHeight: 22, color: C.text, letterSpacing: -0.5 }}>Minty</Text>
+            <Text style={{ fontFamily: FONT.display, fontSize: 22, lineHeight: 22, color: C.text, letterSpacing: -0.5 }}>Salty 🧪</Text>
             <Text numberOfLines={1} style={{ fontFamily: FONT.mono, fontSize: 10, color: C.textTertiary, marginTop: 2, letterSpacing: 0.5 }}>{greeting}, {displayName}</Text>
           </View>
         </View>
