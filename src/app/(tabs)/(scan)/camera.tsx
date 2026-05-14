@@ -1,267 +1,105 @@
 import { useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, useWindowDimensions, Linking } from "react-native";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import { View, Text, Pressable, Linking, Platform } from "react-native";
 import { useRouter } from "expo-router";
+import DocumentScanner, { ResponseType, ScanDocumentResponseStatus } from "react-native-document-scanner-plugin";
 import { setPendingImageUri, setPendingImageUris } from "@/lib/pending-scan";
-import { C } from "@/lib/theme";
+import { C, FONT } from "@/lib/theme";
+import { Icon } from "@/components/icon";
 
-const CARD_RATIO = 7 / 5; // height / width (portrait card)
-const CARD_WIDTH_RATIO = 5 / 7; // width / height (inverse, for crop math)
-
-// Crop the captured photo to the card aspect ratio at ~92% of the smaller
-// dimension, centered. Removes background pixels so Claude's vision tokens
-// concentrate on the card itself instead of the marble / table / fingers.
-async function cropToCardArea(uri: string, w?: number, h?: number): Promise<string> {
-  if (!w || !h) return uri;
-  try {
-    let cropW: number, cropH: number;
-    const photoRatio = w / h;
-    if (photoRatio < CARD_WIDTH_RATIO) {
-      // Photo taller than card — width is the constraint
-      cropW = w * 0.96;
-      cropH = cropW / CARD_WIDTH_RATIO;
-    } else {
-      // Photo wider than card — height is the constraint
-      cropH = h * 0.96;
-      cropW = cropH * CARD_WIDTH_RATIO;
-    }
-    const originX = Math.round((w - cropW) / 2);
-    const originY = Math.round((h - cropH) / 2);
-    const ref = await ImageManipulator.manipulate(uri)
-      .crop({ originX, originY, width: Math.round(cropW), height: Math.round(cropH) })
-      .renderAsync();
-    const result = await ref.saveAsync({ format: SaveFormat.JPEG, compress: 0.92 });
-    return result.uri;
-  } catch (e) {
-    console.warn("[cropToCardArea] failed, using uncropped photo:", e);
-    return uri;
-  }
-}
-const CORNER_SIZE = 30;
-const CORNER_THICKNESS = 3;
-
-function CornerBracket({ position }: { position: "tl" | "tr" | "bl" | "br" }) {
-  const top = position.startsWith("t");
-  const left = position.endsWith("l");
-  return (
-    <View style={{ position: "absolute", width: CORNER_SIZE, height: CORNER_SIZE,
-      top: top ? 0 : undefined, bottom: top ? undefined : 0,
-      left: left ? 0 : undefined, right: left ? undefined : 0,
-    }}>
-      {/* Horizontal arm */}
-      <View style={{
-        position: "absolute",
-        width: CORNER_SIZE, height: CORNER_THICKNESS,
-        backgroundColor: "white",
-        top: top ? 0 : undefined, bottom: top ? undefined : 0,
-        left: left ? 0 : undefined, right: left ? undefined : 0,
-      }} />
-      {/* Vertical arm */}
-      <View style={{
-        position: "absolute",
-        width: CORNER_THICKNESS, height: CORNER_SIZE,
-        backgroundColor: "white",
-        top: top ? 0 : undefined, bottom: top ? undefined : 0,
-        left: left ? 0 : undefined, right: left ? undefined : 0,
-      }} />
-    </View>
-  );
-}
-
-type Phase = "front" | "flip-prompt" | "back";
+// VNDocumentCameraViewController on iOS / ML Kit Document Scanner on Android.
+// Both ship with auto-capture (rectangle detection + focus quality), perspective
+// correction, and multi-page support — same engine Apple Notes uses for scanning
+// documents. We hand it 'maxNumDocuments: 2' so users can capture front + back
+// in a single session without leaving the scanner UI.
 
 export default function CameraScreen() {
   const router = useRouter();
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef<CameraView>(null);
-  const [capturing, setCapturing] = useState(false);
-  const [phase, setPhase] = useState<Phase>("front");
-  const [frontUri, setFrontUri] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const launchedRef = useRef(false);
 
-  // Tighter frame guide pushes users to hold the camera closer so the card
-  // fills more of the photo. Combined with the post-capture crop below, this
-  // dramatically increases the card's pixel share in what Claude sees.
-  const cutoutWidth = Math.min(screenWidth * 0.96, (screenHeight - 200) / CARD_RATIO);
-  const cutoutHeight = cutoutWidth * CARD_RATIO;
-  const cutoutTop = (screenHeight - cutoutHeight) / 2;
-  const cutoutLeft = (screenWidth - cutoutWidth) / 2;
-
-  const handleCapture = async () => {
-    if (capturing) return;
-    setCapturing(true);
-    try {
-      const photo = await cameraRef.current?.takePictureAsync({ quality: 0.9 });
-      if (photo?.uri) {
-        const cropped = await cropToCardArea(photo.uri, photo.width, photo.height);
-        if (phase === "front") {
-          setFrontUri(cropped);
-          setPhase("flip-prompt");
+  useEffect(() => {
+    if (launchedRef.current) return;
+    launchedRef.current = true;
+    (async () => {
+      try {
+        const result = await DocumentScanner.scanDocument({
+          croppedImageQuality: 100,
+          maxNumDocuments: 2,
+          responseType: ResponseType.ImageFilePath,
+        });
+        if (result.status === ScanDocumentResponseStatus.Cancel) {
+          router.back();
+          return;
+        }
+        const imgs = result.scannedImages ?? [];
+        if (imgs.length === 0) {
+          router.back();
+          return;
+        }
+        if (imgs.length === 1) {
+          setPendingImageUri(imgs[0]);
         } else {
-          // back captured — navigate with both
-          setPendingImageUris(frontUri!, cropped);
-          router.push("/(tabs)/(scan)/analyzing");
+          // First captured = front, second = back. The system scanner doesn't
+          // know front from back, so we rely on user capture order.
+          setPendingImageUris(imgs[0], imgs[1]);
+        }
+        router.replace("/(tabs)/(scan)/analyzing");
+      } catch (e: any) {
+        console.error("DocumentScanner error:", e);
+        const msg = e?.message ?? "Couldn't open the scanner.";
+        // Camera-permission denial surfaces here on iOS. Recognize the common
+        // strings so we can route the user to Settings instead of a dead error.
+        if (msg.toLowerCase().includes("permission") || msg.toLowerCase().includes("denied") || msg.toLowerCase().includes("authorized")) {
+          setError("permission");
+        } else {
+          setError(msg);
         }
       }
-    } catch (e) {
-      console.error("Capture error:", e);
-    } finally {
-      setCapturing(false);
-    }
-  };
+    })();
+  }, [router]);
 
-  const skipBack = () => {
-    setPendingImageUri(frontUri!);
-    router.push("/(tabs)/(scan)/analyzing");
-  };
-
-  // Auto-trigger the system permission prompt on mount. Apple 5.1.1(iv): no
-  // pre-prompt with opt-out — the user must always proceed to the OS dialog.
-  useEffect(() => {
-    if (permission && !permission.granted && permission.canAskAgain) {
-      requestPermission();
-    }
-  }, [permission?.granted, permission?.canAskAgain]);
-
-  if (!permission) return <View style={{ flex: 1, backgroundColor: "#000" }} />;
-
-  if (!permission.granted) {
-    if (permission.canAskAgain) {
-      return <View style={{ flex: 1, backgroundColor: "#000" }} />;
-    }
+  if (error === "permission") {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", gap: 16, padding: 32 }}>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: C.text, textAlign: "center" }}>Camera access is off</Text>
-        <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: "center", lineHeight: 20 }}>
-          Minty uses your camera to photograph trading cards for grading. You can turn on camera access in Settings.
+        <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: C.surface, justifyContent: "center", alignItems: "center" }}>
+          <Icon name="camera" size={24} color={C.mint} strokeWidth={1.8} />
+        </View>
+        <Text style={{ fontSize: 18, fontFamily: FONT.uiBold, color: C.text, textAlign: "center" }}>Camera access is off</Text>
+        <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: "center", lineHeight: 20, maxWidth: 300 }}>
+          Minty uses your camera to photograph trading cards for grading. Turn on camera access in Settings.
         </Text>
         <Pressable
           onPress={() => Linking.openSettings()}
           style={({ pressed }) => ({
             paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14,
-            backgroundColor: C.red, opacity: pressed ? 0.85 : 1,
+            backgroundColor: C.mint, opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Text style={{ fontSize: 16, fontWeight: "600", color: "white" }}>Open Settings</Text>
+          <Text style={{ fontSize: 15, fontFamily: FONT.uiBold, color: C.onMint, paddingRight: 2 }}>Open Settings</Text>
         </Pressable>
-        <Pressable onPress={() => router.back()}>
-          <Text style={{ fontSize: 14, color: C.textSecondary }}>Close</Text>
+        <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Text style={{ fontSize: 14, color: C.textSecondary, paddingVertical: 8 }}>Cancel</Text>
         </Pressable>
       </View>
     );
   }
 
-  return (
-    <View style={{ flex: 1, backgroundColor: "#000" }}>
-      <CameraView
-        ref={cameraRef}
-        style={{ flex: 1 }}
-        facing="back"
-        autofocus="on"
-        zoom={0.05}
-      />
-
-      {/* Overlay — top */}
-      <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: cutoutTop, backgroundColor: "rgba(0,0,0,0.6)" }} />
-      {/* Overlay — bottom */}
-      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, top: cutoutTop + cutoutHeight, backgroundColor: "rgba(0,0,0,0.6)" }} />
-      {/* Overlay — left */}
-      <View style={{ position: "absolute", top: cutoutTop, left: 0, width: cutoutLeft, height: cutoutHeight, backgroundColor: "rgba(0,0,0,0.6)" }} />
-      {/* Overlay — right */}
-      <View style={{ position: "absolute", top: cutoutTop, right: 0, left: cutoutLeft + cutoutWidth, height: cutoutHeight, backgroundColor: "rgba(0,0,0,0.6)" }} />
-
-      {/* Corner brackets */}
-      <View style={{ position: "absolute", top: cutoutTop, left: cutoutLeft, width: cutoutWidth, height: cutoutHeight }}>
-        <CornerBracket position="tl" />
-        <CornerBracket position="tr" />
-        <CornerBracket position="bl" />
-        <CornerBracket position="br" />
-      </View>
-
-      {/* Instruction text above cutout */}
-      <View style={{ position: "absolute", top: cutoutTop - 44, left: 0, right: 0, alignItems: "center" }}>
-        <Text style={{ color: "white", fontSize: 15, fontWeight: "600" }}>
-          {phase === "back" ? "Flip card — align the back in the frame" : "Align your card within the frame"}
-        </Text>
-      </View>
-
-      {/* Instruction text below cutout */}
-      <View style={{ position: "absolute", top: cutoutTop + cutoutHeight + 14, left: 0, right: 0, alignItems: "center" }}>
-        <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>Hold steady • Avoid glare</Text>
-      </View>
-
-      {/* Capture button */}
-      <View style={{ position: "absolute", bottom: 60, left: 0, right: 0, alignItems: "center" }}>
-        <Pressable onPress={handleCapture} disabled={capturing}>
-          <View style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: "white", justifyContent: "center", alignItems: "center", opacity: capturing ? 0.5 : 1 }}>
-            <View style={{ width: 58, height: 58, borderRadius: 29, backgroundColor: "white" }} />
-          </View>
+  if (error) {
+    return (
+      <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", gap: 16, padding: 32 }}>
+        <Text style={{ fontSize: 16, color: C.text, textAlign: "center" }}>Couldn&apos;t open the scanner.</Text>
+        <Text style={{ fontSize: 12, color: C.textTertiary, textAlign: "center" }}>{error}</Text>
+        <Pressable onPress={() => router.back()}>
+          <Text style={{ fontSize: 14, color: C.mint, paddingVertical: 8 }}>Go back</Text>
         </Pressable>
       </View>
+    );
+  }
 
-      {/* Close button */}
-      <Pressable
-        onPress={() => router.back()}
-        style={{ position: "absolute", top: 56, left: 20, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}
-      >
-        <Text style={{ color: "white", fontSize: 18, lineHeight: 22 }}>✕</Text>
-      </Pressable>
-
-      {/* Phase indicator pill (back mode) */}
-      {phase === "back" && (
-        <View style={{ position: "absolute", top: 56, right: 20 }}>
-          <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, backgroundColor: "rgba(0,0,0,0.6)", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" }}>
-            <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>BACK</Text>
-          </View>
-        </View>
-      )}
-
-      {/* Flip prompt overlay */}
-      {phase === "flip-prompt" && (
-        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", padding: 32, gap: 32 }}>
-          {/* Card flip icon */}
-          <View style={{ alignItems: "center", gap: 0 }}>
-            <View style={{ width: 80, height: 112, borderRadius: 10, borderCurve: "continuous", backgroundColor: C.surface, borderWidth: 2, borderColor: "#3DD68C", justifyContent: "center", alignItems: "center" }}>
-              <Text style={{ fontSize: 36 }}>✓</Text>
-            </View>
-            <View style={{ marginTop: -8, width: 80, height: 112, borderRadius: 10, borderCurve: "continuous", backgroundColor: "#1A2E1A", borderWidth: 2, borderColor: "#3DD68C", justifyContent: "center", alignItems: "center", transform: [{ rotate: "6deg" }] }}>
-              <Text style={{ fontSize: 28, opacity: 0.6 }}>↩</Text>
-            </View>
-          </View>
-
-          <View style={{ alignItems: "center", gap: 10 }}>
-            <Text style={{ fontSize: 26, fontWeight: "800", color: C.text, letterSpacing: -0.5 }}>Front captured!</Text>
-            <Text style={{ fontSize: 16, color: C.textSecondary, textAlign: "center", lineHeight: 24 }}>
-              Flip your card over to photograph the back for more accurate centering analysis.
-            </Text>
-          </View>
-
-          <View style={{ width: "100%", gap: 12 }}>
-            <Pressable
-              onPress={() => setPhase("back")}
-              style={({ pressed }) => ({
-                padding: 17, borderRadius: 16, borderCurve: "continuous",
-                backgroundColor: C.red, alignItems: "center",
-                opacity: pressed ? 0.85 : 1,
-              })}
-            >
-              <Text style={{ fontSize: 16, fontWeight: "700", color: "white" }}>Photograph Back</Text>
-            </Pressable>
-            <Pressable
-              onPress={skipBack}
-              style={({ pressed }) => ({
-                padding: 17, borderRadius: 16, borderCurve: "continuous",
-                backgroundColor: C.surface, alignItems: "center",
-                borderWidth: 1, borderColor: C.border,
-                opacity: pressed ? 0.85 : 1,
-              })}
-            >
-              <Text style={{ fontSize: 16, fontWeight: "600", color: C.textSecondary }}>Skip — Front Only</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
-    </View>
-  );
+  // While the native scanner is launching, show a black background — the
+  // VNDocumentCameraViewController will present itself on top within ~200 ms.
+  return <View style={{ flex: 1, backgroundColor: "#000" }} />;
 }
+
+// Silence platform-specific unused warning on Android-only builds
+void Platform;

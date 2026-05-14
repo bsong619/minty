@@ -16,7 +16,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.bsong.mintyyy",
-      "buildNumber": "51",
+      "buildNumber": "52",
       "supportsTablet": false,
       "splash": {
         "image": "./src/assets/splash.png",
@@ -68,7 +68,8 @@
         {
           "photosPermission": "Minty accesses your photo library so you can choose an existing card photo to grade."
         }
-      ]
+      ],
+      "react-native-document-scanner-plugin"
     ],
     "extra": {
       "router": {},
