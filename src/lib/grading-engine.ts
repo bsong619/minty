@@ -21,7 +21,9 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-async function getBase64(imageUri: string): Promise<string> {
+async function getBase64(imageUri: string, opts?: { maxWidth?: number; quality?: number }): Promise<string> {
+  const maxWidth = opts?.maxWidth ?? 1568;
+  const quality = opts?.quality ?? 0.85;
   try {
     let localUri = imageUri;
     // Remote URLs must be downloaded to a local temp file before ImageManipulator can process them
@@ -30,18 +32,12 @@ async function getBase64(imageUri: string): Promise<string> {
       await FileSystem.downloadAsync(imageUri, tempUri);
       localUri = tempUri;
     }
-    // 1568px long-edge matches Claude Sonnet 4.6's native vision resolution — anything
-    // larger gets server-side downscaled, anything smaller throws away surface detail
-    // (print lines, micro-whitening, holo scratches) that determines 9 vs 10. JPEG q0.9
-    // because heavy compression destroys exactly those fine high-frequency features.
-    // SDK 55+ chainable API — resize() returns a new context, must be chained.
+    // 1568px long-edge matches Claude Sonnet 4.6's native vision resolution.
+    // On retry we downsize to 1024px to slash the upload payload on slow WiFi.
     const ref = await ImageManipulator.manipulate(localUri)
-      .resize({ width: 1568 })
+      .resize({ width: maxWidth })
       .renderAsync();
-    // 0.85 keeps the print-line / micro-whitening detail Claude needs for 9 vs 10
-    // while cutting ~25% off the upload payload vs 0.9 — meaningful on slow WiFi.
-    const result = await ref.saveAsync({ format: SaveFormat.JPEG, compress: 0.85 });
-    // Read the saved file as base64
+    const result = await ref.saveAsync({ format: SaveFormat.JPEG, compress: quality });
     if (process.env.EXPO_OS !== "web" && result.uri) {
       return await FileSystem.readAsStringAsync(result.uri, { encoding: "base64" });
     }
@@ -60,22 +56,21 @@ async function getBase64(imageUri: string): Promise<string> {
 export async function analyzeCard(imageUri: string, backImageUri?: string): Promise<GradeResult> {
   if (!GRADE_ENDPOINT || !supabase) throw new Error("Grading service not configured");
 
-  const base64 = await getBase64(imageUri);
-  const backBase64 = backImageUri ? await getBase64(backImageUri) : undefined;
-
   // Get the current user's JWT — the edge function requires it.
   const { data: { session } } = await supabase.auth.getSession();
   const accessToken = session?.access_token;
   if (!accessToken) throw new Error("Please sign in to grade a card");
 
-  // WiFi-vs-cellular reliability: home WiFi uplinks are often 5–15 Mbps which
-  // means a 2–4 MB JSON body takes 3–8 s to push, plus 5–15 s for Claude
-  // analysis. The old 30 s ceiling hit before the request finished. Bumped to
-  // 90 s, with one auto-retry on network errors so a single transient TCP hiccup
-  // doesn't kill a scan. `Connection: close` avoids stale keep-alive sockets
-  // that some consumer routers hold past their NAT idle timeout.
-  const body = JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg", backImageBase64: backBase64 });
-  const doFetch = async (): Promise<Response> => {
+  // Adaptive payload: first attempt is full quality (1568px @ q0.85, ~2 MB
+  // JSON). If that times out, the network is probably slow — retry with a
+  // 1024px @ q0.75 payload (~0.7 MB, ~3x faster upload). Claude still ID's
+  // the card fine at 1024px; only fine surface detail degrades, which is
+  // an acceptable tradeoff over a failed scan.
+  const doAttempt = async (small: boolean): Promise<Response> => {
+    const opts = small ? { maxWidth: 1024, quality: 0.75 } : undefined;
+    const base64 = await getBase64(imageUri, opts);
+    const backBase64 = backImageUri ? await getBase64(backImageUri, opts) : undefined;
+    const body = JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg", backImageBase64: backBase64 });
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 150_000);
     try {
@@ -93,17 +88,17 @@ export async function analyzeCard(imageUri: string, backImageUri?: string): Prom
       clearTimeout(timeout);
     }
   };
+
   let res: Response;
   try {
-    res = await doFetch();
+    res = await doAttempt(false);
   } catch (e: any) {
-    // Retry once on network / abort errors. HTTP error statuses (4xx/5xx) don't
-    // throw — they come back as res.ok=false and are handled below.
     if (e?.name === "AbortError" || e?.message?.toLowerCase()?.includes("network")) {
+      // Retry smaller — gives slow networks a real shot at finishing
       try {
-        res = await doFetch();
+        res = await doAttempt(true);
       } catch (retryErr: any) {
-        if (retryErr?.name === "AbortError") throw new Error("Grading timed out. Try again on a different network.");
+        if (retryErr?.name === "AbortError") throw new Error("Grading timed out. Try a faster network and scan again.");
         throw retryErr;
       }
     } else {
