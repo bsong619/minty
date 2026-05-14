@@ -35,13 +35,15 @@ export default function GradeBadge({
       }}>
         {labelSize > 0 && (
           <Text style={{
+            position: "absolute", top: dim * 0.18,
             fontSize: labelSize, fontFamily: FONT.monoBold, color,
-            letterSpacing: 2, marginBottom: -2,
+            letterSpacing: 2,
           }}>GRADE</Text>
         )}
         <Text style={{
           fontSize, fontFamily: FONT.display, color,
-          letterSpacing: -2, lineHeight: fontSize * 1.05,
+          letterSpacing: -2, lineHeight: fontSize,
+          textAlign: "center", includeFontPadding: false,
         }}>
           {display}
         </Text>

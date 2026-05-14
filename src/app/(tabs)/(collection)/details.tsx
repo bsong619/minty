@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import GradeBadge from "@/components/grade-badge";
 import SubGradeBar from "@/components/sub-grade-bar";
-import { getGradeColor, getConfidenceColor } from "@/lib/grade-colors";
+import { getGradeColor } from "@/lib/grade-colors";
 import { getCards, toggleFavorite as localToggleFavorite, deleteCard as localDeleteCard } from "@/lib/storage";
 import { getScannedCardById, toggleFavorite as sbToggleFavorite, deleteScannedCard } from "@/lib/card-service";
 import { useAuth } from "@/components/auth-provider";
@@ -51,7 +51,6 @@ export default function DetailsScreen() {
 
   const { result } = card;
   const gradeColor = getGradeColor(result.overallGrade);
-  const confidenceColor = getConfidenceColor(result.confidence);
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
@@ -60,23 +59,17 @@ export default function DetailsScreen() {
     >
       {/* Hero */}
       <View style={{ alignItems: "center", gap: 16, paddingVertical: 8 }}>
-        <View style={{ borderRadius: 16, borderCurve: "continuous", overflow: "hidden", boxShadow: SHADOW.hero }}>
-          <Image
-            source={{ uri: heroUrl }}
-            style={{ width: 200, height: 280, borderRadius: 16 }}
-            contentFit="cover"
-            onError={() => {}}
-          />
-        </View>
+        <Image
+          source={{ uri: heroUrl }}
+          style={{ width: 220, height: 308, borderRadius: 12, ...({ boxShadow: SHADOW.hero } as any) }}
+          contentFit="contain"
+          onError={() => {}}
+        />
         <GradeBadge grade={result.overallGrade} size="large" />
         <View style={{ alignItems: "center", gap: 6 }}>
           <Text style={{ fontSize: 26, fontWeight: "800", color: gradeColor, letterSpacing: -0.5 }}>
             Grade {result.overallGrade} — {GRADE_LABELS[result.overallGrade] ?? ""}
           </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 100, backgroundColor: `${confidenceColor}18`, borderWidth: 1, borderColor: `${confidenceColor}40` }}>
-            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: confidenceColor }} />
-            <Text style={{ fontSize: 13, color: confidenceColor, fontWeight: "600" }}>{result.confidence} Confidence</Text>
-          </View>
         </View>
       </View>
 
