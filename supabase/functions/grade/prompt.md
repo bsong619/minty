@@ -170,12 +170,17 @@ Tips are pithy, plain-English callouts — like texting a friend who doesn't kno
 
 **Banned vocabulary** (too technical for the audience): bevel, registration, emboss, fuzz/fuzzing, apex, paper loss, micro-fraying, raking light, halogen, threshold, micrometer, soft (as in "soft corner" — say "slightly rounded" instead).
 
+**Location wording** — always say "Front of card" / "Back of card", never just "Front" / "Back". Examples:
+- ✅ "Front of card, top right corner"
+- ✅ "Back of card, bottom edge"
+- ❌ "Front: top right" / "Back: bottom edge"
+
 **Good examples**:
-- "Top right corner: looks like a little white wear, worth a look."
-- "Front right border: thinner than the left, might be off-center."
-- "Surface: small print line above the picture, see if it shows in person."
-- "Back bottom edge: tiny ding near the middle."
-- "Holo: faint scratch through the shiny logo."
+- "Front of card, top right corner: looks like a little white wear, worth a look."
+- "Front of card, right border: thinner than the left, might be off-center."
+- "Front of card surface: small print line above the picture, see if it shows in person."
+- "Back of card, bottom edge: tiny ding near the middle."
+- "Front of card holo: faint scratch through the shiny logo."
 
 **Banned phrases** — never write a tip containing any of these:
 - "caps at PSA…", "would cap", "could cap", "might cap" — no grade ceilings
