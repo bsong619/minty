@@ -108,7 +108,22 @@ export async function analyzeCard(imageUri: string, backImageUri?: string): Prom
   if (!res.ok) {
     if (res.status === 429) throw new Error("Daily grade limit reached. Try again later.");
     if (res.status === 401) throw new Error("Please sign in to grade a card");
-    throw new Error("Grading service is unavailable. Please try again.");
+    // Surface the actual server response so support can diagnose 5xx / 504 vs
+    // a plain "service unavailable" black box.
+    let serverMsg = "";
+    try {
+      const txt = await res.text();
+      try {
+        const j = JSON.parse(txt);
+        serverMsg = j.error || j.message || txt.slice(0, 200);
+      } catch {
+        serverMsg = txt.slice(0, 200);
+      }
+    } catch {}
+    console.warn("[analyzeCard] grade endpoint returned non-OK", res.status, serverMsg);
+    if (res.status === 504) throw new Error("AI took too long to grade this card. Please try again.");
+    if (res.status >= 500) throw new Error(`Grading service is having trouble (${res.status}). Try again in a moment.`);
+    throw new Error(serverMsg || `Grading failed (${res.status}). Please try again.`);
   }
   return res.json();
 }
