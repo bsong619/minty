@@ -1,13 +1,17 @@
 import { useEffect, useCallback, useState } from "react";
 import { View, Text, ScrollView, Pressable, Alert } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { hasSeenOnboarding, markOnboardingSeen } from "@/lib/storage";
+import {
+  hasSeenOnboarding,
+  markOnboardingSeen,
+  hasAcceptedAiConsent,
+  markAiConsentAccepted,
+} from "@/lib/storage";
 import { useAuth } from "@/components/auth-provider";
 import { setPendingImageUri } from "@/lib/pending-scan";
 import { getScannedCards, refreshCardImageUrls } from "@/lib/card-service";
@@ -18,7 +22,6 @@ import { HoloFoil } from "@/components/holo-foil";
 import { Icon, type IconName } from "@/components/icon";
 import { C, FONT, SHADOW } from "@/lib/theme";
 import { getGradeColor } from "@/lib/grade-colors";
-import { canScan, getQuota, FREE_DAILY_LIMIT, type QuotaSnapshot } from "@/lib/scan-quota";
 
 const HORIZ = 20;
 
@@ -29,15 +32,6 @@ export default function ScanScreen() {
 
   const [appReady, setAppReady] = useState(false);
   const [recents, setRecents] = useState<GradedCard[]>([]);
-  const [quota, setQuota] = useState<QuotaSnapshot>({ used: 0, limit: FREE_DAILY_LIMIT, remaining: FREE_DAILY_LIMIT, isPro: false });
-
-  // Refresh quota whenever the scan tab regains focus — it changes after every
-  // successful grade and after the paywall.
-  useFocusEffect(
-    useCallback(() => {
-      getQuota().then(setQuota);
-    }, [])
-  );
 
   useEffect(() => {
     const t = setTimeout(() => setAppReady(true), 500);
@@ -75,29 +69,48 @@ export default function ScanScreen() {
     router.push("/(tabs)/(scan)/analyzing");
   }, [router]);
 
-  // Apple Guideline 2.1 (AI): consent surfaced via a persistent visible
-  // banner on this screen (see "AI disclosure" below) + Privacy Policy.
-  // No blocking modal — using the Scan button is itself the consent action.
+  // Apple Guideline 5.1.2 (AI): explicit, just-in-time consent before any
+  // card photo leaves the device. Names the third party (Anthropic), the
+  // data shared (the card photo), and the purpose. Required before the
+  // first scan; once accepted we don't re-ask.
+  const ensureAiConsent = useCallback(async (): Promise<boolean> => {
+    if (await hasAcceptedAiConsent()) return true;
+    return new Promise<boolean>((resolve) => {
+      Alert.alert(
+        "Share your card photo with AI?",
+        "To grade your card, Minty sends the photo you just selected to Anthropic — the makers of Claude AI — for analysis. " +
+          "\n\nWhat's shared: only the card image you choose." +
+          "\nWho receives it: Anthropic (claude.ai)." +
+          "\nWhat happens: Anthropic analyzes the image and returns a grade. Your photo isn't used to train AI models." +
+          "\n\nYou can review details in our Privacy Policy at any time.",
+        [
+          { text: "Not now", style: "cancel", onPress: () => resolve(false) },
+          {
+            text: "I agree",
+            style: "default",
+            onPress: async () => {
+              await markAiConsentAccepted().catch(() => {});
+              resolve(true);
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+    });
+  }, []);
+
   const takePhoto = useCallback(async () => {
-    if (!(await canScan())) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      router.push("/scan-limit" as any);
-      return;
-    }
+    if (!(await ensureAiConsent())) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push("/(tabs)/(scan)/camera");
-  }, [router]);
+  }, [router, ensureAiConsent]);
 
   const pickImage = useCallback(async () => {
-    if (!(await canScan())) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      router.push("/scan-limit" as any);
-      return;
-    }
+    if (!(await ensureAiConsent())) return;
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.9 });
     if (result.canceled) return;
     handleImageSelected(result.assets[0].uri);
-  }, [handleImageSelected, router]);
+  }, [handleImageSelected, ensureAiConsent]);
 
   const greeting = greetingFor(new Date());
   const displayName = isAnonymous
@@ -122,29 +135,6 @@ export default function ScanScreen() {
             <Text numberOfLines={1} style={{ fontFamily: FONT.mono, fontSize: 10, color: C.textTertiary, marginTop: 2, letterSpacing: 0.5 }}>{greeting}, {displayName}</Text>
           </View>
         </View>
-        {/* Scan-counter pill — Pro hides it; free tier shows N / 5 LEFT. Tap = paywall. */}
-        {quota.isPro ? (
-          <View style={{
-            flexDirection: "row", alignItems: "center", gap: 6,
-            paddingVertical: 6, paddingHorizontal: 10, borderRadius: 100,
-            backgroundColor: C.surface, borderWidth: 1, borderColor: C.mintFaint,
-          }}>
-            <Text style={{ fontSize: 11 }}>✦</Text>
-            <Text style={{ fontFamily: FONT.monoBold, fontSize: 11, color: C.mint, letterSpacing: 0.5 }}>PRO</Text>
-          </View>
-        ) : (
-          <View
-            style={{
-              flexDirection: "row", alignItems: "center", gap: 6,
-              paddingVertical: 7, paddingHorizontal: 12, borderRadius: 100,
-              backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
-              flexShrink: 0,
-            }}
-          >
-            <Text style={{ fontFamily: FONT.uiBold, fontSize: 12, color: C.mint }}>{quota.remaining}</Text>
-            <Text numberOfLines={1} style={{ fontFamily: FONT.ui, fontSize: 11, color: C.textSecondary }}>scans left today</Text>
-          </View>
-        )}
       </View>
 
       {/* Hero card */}
@@ -197,7 +187,9 @@ export default function ScanScreen() {
         </View>
       </View>
 
-      {/* AI disclosure banner — Apple Guideline 2.1 in-UI consent surface */}
+      {/* AI disclosure banner — Apple Guideline 5.1.2: names the third-party
+          processor (Anthropic). Consent itself is collected just-in-time on
+          the first scan via ensureAiConsent(). */}
       <Pressable
         onPress={() => router.push("/privacy" as any)}
         style={({ pressed }) => ({
@@ -210,7 +202,7 @@ export default function ScanScreen() {
       >
         <Icon name="info" size={12} color={C.textTertiary} />
         <Text numberOfLines={2} style={{ flex: 1, fontSize: 11, color: C.textTertiary, lineHeight: 15 }}>
-          Scans are analyzed by AI. Not used to train models.{" "}
+          Card photos are sent to Anthropic (Claude AI) for grading. Not used to train models.{" "}
           <Text style={{ color: C.mint, fontFamily: FONT.uiBold }}>Learn more</Text>
         </Text>
       </Pressable>

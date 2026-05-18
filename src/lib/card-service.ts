@@ -248,7 +248,7 @@ export async function deleteAllScannedCards(userId: string): Promise<void> {
   try {
     const { data: files } = await supabase.storage.from("card-images").list(userId);
     if (files?.length) {
-      await supabase.storage.from("card-images").remove(files.map((f) => `${userId}/${f.name}`));
+      await supabase.storage.from("card-images").remove(files.map((f: { name: string }) => `${userId}/${f.name}`));
     }
   } catch (e) {
     console.warn("Storage cleanup failed (non-blocking):", e);

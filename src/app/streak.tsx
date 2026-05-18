@@ -87,8 +87,8 @@ export default function StreakScreen() {
             <Text style={{ fontSize: 24 }}>🎁</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, fontFamily: FONT.uiBold, color: C.text }}>Reward at 30 days</Text>
-            <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>1 free Pro market scan</Text>
+            <Text style={{ fontSize: 13, fontFamily: FONT.uiBold, color: C.text }}>30-day streak badge</Text>
+            <Text style={{ fontSize: 11, color: C.textSecondary, marginTop: 2 }}>Show off your dedication</Text>
           </View>
           <Text style={{ fontFamily: FONT.monoBold, fontSize: 11, color: C.gold }}>{daysToReward}d</Text>
         </View>

@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { markOnboardingSeen } from "@/lib/storage";
+import { markOnboardingSeen, markAiConsentAccepted } from "@/lib/storage";
 import { C, SHADOW } from "@/lib/theme";
 
 const STEPS = [
@@ -30,7 +30,7 @@ const STEPS = [
     icon: "sf:wand.and.stars",
     title: "AI Analysis",
     description:
-      "Our AI evaluates your card across all four grading criteria like a pro — centering, corners, edges, and surface condition.",
+      "Your card photo is sent to Anthropic's Claude AI, which evaluates it across the four grading criteria — centering, corners, edges, and surface.",
     tips: [
       "Higher quality photos = more accurate grades",
       "Fill the entire frame with the card",
@@ -43,9 +43,21 @@ const STEPS = [
     description:
       "Get your predicted grade with a full breakdown — centering, corners, edges, surface — plus tips to level up.",
     tips: [
-      "5 free grades a day — Pro unlocks unlimited",
+      "Free to use, no subscription",
       "Save your best pulls to favorites",
       "Use tips to decide which cards are worth grading",
+    ],
+  },
+  {
+    icon: "sf:hand.raised.fill",
+    title: "Your Photo, Your Choice",
+    description:
+      "Before we grade your first card, we want you to know exactly what happens with your photo.",
+    tips: [
+      "Shared with: Anthropic (Claude AI) — only the card photo you choose",
+      "Used for: returning a grade. Not used to train AI models",
+      "Not shared with advertisers or any other third parties",
+      "By tapping Get Started, you agree to share card photos for AI analysis",
     ],
   },
 ];
@@ -69,15 +81,24 @@ export default function OnboardingScreen() {
         animated: true,
       });
     } else {
+      // Final step is the AI consent step — tapping Get Started records
+      // affirmative consent (Apple Guideline 5.1.2) in addition to marking
+      // onboarding as seen.
       await markOnboardingSeen();
+      await markAiConsentAccepted();
       router.back();
     }
   };
 
   const handleSkip = async () => {
+    // Skip only dismisses the tour — it does NOT grant AI consent. The first
+    // scan attempt will surface a just-in-time consent dialog before any
+    // photo leaves the device.
     await markOnboardingSeen();
     router.back();
   };
+
+  const isFinalStep = currentStep === STEPS.length - 1;
 
   return (
     <View
@@ -94,17 +115,23 @@ export default function OnboardingScreen() {
           paddingTop: 60,
         }}
       >
-        <Pressable onPress={handleSkip}>
-          <Text
-            style={{
-              fontSize: 16,
-              color: C.textTertiary,
-              fontWeight: "500",
-            }}
-          >
-            Skip
-          </Text>
-        </Pressable>
+        {/* Skip is intentionally hidden on the final (AI consent) step so
+            users can't bypass disclosure by swiping past it. They still see
+            a just-in-time consent dialog on first scan if they reach the
+            scan screen without an "I agree" tap. */}
+        {!isFinalStep && (
+          <Pressable onPress={handleSkip}>
+            <Text
+              style={{
+                fontSize: 16,
+                color: C.textTertiary,
+                fontWeight: "500",
+              }}
+            >
+              Skip
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       <ScrollView
@@ -239,7 +266,7 @@ export default function OnboardingScreen() {
           } as any)}
         >
           <Text style={{ fontSize: 17, fontWeight: "700", color: "white" }}>
-            {currentStep === STEPS.length - 1 ? "Get Started" : "Next"}
+            {isFinalStep ? "I Agree & Get Started" : "Next"}
           </Text>
         </Pressable>
       </View>

@@ -12,7 +12,6 @@ import { getCards } from "@/lib/storage";
 import { GradedCard } from "@/lib/types";
 import { Icon, type IconName } from "@/components/icon";
 import { C, FONT, SHADOW } from "@/lib/theme";
-import { getQuota, FREE_DAILY_LIMIT, type QuotaSnapshot } from "@/lib/scan-quota";
 
 function Row({ icon, label, value, onPress, destructive }: { icon: IconName; label: string; value?: string; onPress?: () => void; destructive?: boolean }) {
   return (
@@ -55,13 +54,6 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { userEmail, isAnonymous, signOut, userId, firstName } = useAuth();
   const [stats, setStats] = useState({ scans: 0, gems: 0, avg: 0 });
-  const [quota, setQuota] = useState<QuotaSnapshot>({ used: 0, limit: FREE_DAILY_LIMIT, remaining: FREE_DAILY_LIMIT, isPro: false });
-
-  useFocusEffect(
-    useCallback(() => {
-      getQuota().then(setQuota);
-    }, [])
-  );
 
   useEffect(() => {
     (async () => {
@@ -174,8 +166,6 @@ export default function ProfileScreen() {
           </View>
         </View>
       </View>
-
-      {/* Pro upsell removed for v1.0 — IAP returns in v1.1 after RevenueCat wiring. */}
 
       {isAnonymous && (
         <Section title="ACCOUNT">

@@ -3,6 +3,7 @@ import { GradedCard } from "./types";
 
 const CARDS_KEY = "minty_history";
 const ONBOARDING_KEY = "minty_onboarding_seen";
+const AI_CONSENT_KEY = "minty_ai_consent_v1";
 
 export async function getCards(): Promise<GradedCard[]> {
   const raw = await AsyncStorage.getItem(CARDS_KEY);
@@ -38,4 +39,13 @@ export async function hasSeenOnboarding(): Promise<boolean> {
 
 export async function markOnboardingSeen(): Promise<void> {
   await AsyncStorage.setItem(ONBOARDING_KEY, "true");
+}
+
+export async function hasAcceptedAiConsent(): Promise<boolean> {
+  const val = await AsyncStorage.getItem(AI_CONSENT_KEY);
+  return val === "true";
+}
+
+export async function markAiConsentAccepted(): Promise<void> {
+  await AsyncStorage.setItem(AI_CONSENT_KEY, "true");
 }

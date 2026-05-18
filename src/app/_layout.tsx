@@ -17,7 +17,6 @@ import { useFonts } from "expo-font";
 import { ThemeProvider } from "@/components/theme-provider";
 import AuthProvider, { useAuth } from "@/components/auth-provider";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-import { initIAP } from "@/lib/iap";
 
 export const AUTH_FLOW_KEY = "auth_flow_seen";
 
@@ -42,12 +41,6 @@ function AuthGate({ onReady }: { onReady: () => void }) {
       .catch(() => {})
       .finally(() => router.replace("/login"));
   }, [pendingLogout]);
-
-  // Init IAP once we know who the user is. No-op if RC isn't configured.
-  useEffect(() => {
-    if (loading) return;
-    initIAP(userId).catch(() => {});
-  }, [loading, userId]);
 
   // Auth routing — runs once loading completes
   useEffect(() => {
@@ -182,9 +175,6 @@ export default function Layout() {
           <Stack.Screen name="reset-password" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="terms" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="privacy" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
-          <Stack.Screen name="paywall" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
-          <Stack.Screen name="scan-limit" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
-          <Stack.Screen name="customer-center" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="streak" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="share" options={{ presentation: "modal", animation: "slide_from_bottom", headerShown: false }} />
           <Stack.Screen name="reveal" options={{ presentation: "transparentModal", animation: "fade", headerShown: false }} />

@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, SHADOW } from "@/lib/theme";
 
-function Section({ title, children }: { title: string; children: string }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={{ gap: 8 }}>
       <Text style={{ fontSize: 16, fontWeight: "700", color: C.text }}>{title}</Text>
@@ -40,8 +40,8 @@ export default function PrivacyScreen() {
           We use your information to: provide and improve the AI card grading service, maintain your card collection history, send account-related communications (verification, password reset), and analyze aggregated app usage to improve performance and stability. We do not sell, rent, or share your personal information with third parties for marketing or advertising purposes.
         </Section>
 
-        <Section title="4. Card Images & AI Processing">
-          Images you submit for grading are sent to Anthropic's Claude AI for analysis via a secure API connection. Images are processed in real-time and are not retained by Anthropic after the API response is returned. For authenticated users, card images are stored in Supabase Storage (hosted on AWS) and associated with your account to maintain your collection. You may delete individual cards or your entire account at any time.
+        <Section title="4. Card Images & AI Processing — What We Share, With Whom, and Why">
+          When you tap "Scan a card," the image you provide is sent over a secure (TLS 1.2+) API connection to Anthropic, PBC ("Anthropic"), the developer of Claude AI, located in the United States. The only data Minty sends to Anthropic is the card photo you select; no account email, no device identifier, and no location data are attached.{"\n\n"}Anthropic uses the image only to return a grading analysis to Minty. Per Anthropic's API terms, API inputs are not used to train Anthropic's AI models, and images are not retained by Anthropic after the API response is returned. You can review Anthropic's commercial terms and privacy policy at anthropic.com.{"\n\n"}Before your first card photo is sent to Anthropic, Minty asks for your explicit consent through an in-app dialog. You can decline, in which case no image is shared and no scan occurs. If you accept, your consent is remembered locally on your device so we don't ask every time; clearing app data or reinstalling resets this.{"\n\n"}For authenticated users, your card images are also stored in Supabase Storage (hosted on AWS, US region) and associated with your account so you can revisit your collection. You may delete individual cards or your entire account at any time from the Profile screen.
         </Section>
 
         <Section title="5. Data Storage & Security">

@@ -11,7 +11,6 @@ import { consumePendingImageUris } from "@/lib/pending-scan";
 import { setPendingResultImages } from "@/lib/pending-result";
 import { GradedCard } from "@/lib/types";
 import { C } from "@/lib/theme";
-import { recordScan } from "@/lib/scan-quota";
 
 async function persistImageLocally(uri: string): Promise<string> {
   // Web: blob URLs are session-only — convert to base64 data URL so they survive reloads
@@ -111,9 +110,6 @@ export default function AnalyzingScreen() {
           cardId = card.id;
           setPendingResultImages(persistedUri);
         }
-        // Count toward the daily free-scan quota only after a successful save.
-        // A failed save means the user didn't actually get a result.
-        recordScan().catch(() => {});
         if (!cancelled) router.replace({ pathname: "/(tabs)/(scan)/results", params: { cardId } });
       } catch (err: any) {
         if (cancelled) return;
