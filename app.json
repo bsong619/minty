@@ -16,7 +16,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.bsong.mintyyy",
-      "buildNumber": "55",
+      "buildNumber": "56",
       "supportsTablet": false,
       "splash": {
         "image": "./src/assets/splash.png",
