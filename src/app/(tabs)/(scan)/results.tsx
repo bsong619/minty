@@ -135,7 +135,7 @@ export default function ResultsScreen() {
         <View style={{ flex: 1, paddingTop: 4 }}>
           <Text style={{ fontFamily: FONT.mono, fontSize: 9, color: C.textTertiary, letterSpacing: 1.5 }}>FINAL GRADE</Text>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 4 }}>
-            <Text style={{ fontFamily: FONT.display, fontSize: 80, color: gradeColor, lineHeight: 96, paddingHorizontal: 4 }}>
+            <Text style={{ fontFamily: FONT.display, fontSize: 80, color: gradeColor, lineHeight: 100, paddingHorizontal: 4 }}>
               {Number.isInteger(grade) ? grade : Math.floor(grade)}
             </Text>
             {!Number.isInteger(grade) && (
@@ -207,7 +207,7 @@ export default function ResultsScreen() {
             ) : comps && comps.median != null ? (
               <>
                 <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-                  <Text style={{ fontFamily: FONT.display, fontSize: 36, color: C.text, lineHeight: 36, letterSpacing: -1 }}>
+                  <Text style={{ fontFamily: FONT.display, fontSize: 36, color: C.text, lineHeight: 44, letterSpacing: -1, paddingHorizontal: 2 }}>
                     {formatCompPrice(comps.median, comps.currency)}
                   </Text>
                   <Text style={{ fontSize: 11, color: C.textSecondary, fontFamily: FONT.mono }}>median ask</Text>

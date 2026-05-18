@@ -52,12 +52,11 @@ const STEPS = [
     icon: "sf:hand.raised.fill",
     title: "Your Photo, Your Choice",
     description:
-      "Before we grade your first card, we want you to know exactly what happens with your photo.",
+      "Before grading, your card photo is sent to Anthropic (Claude AI). Tap below to agree.",
     tips: [
-      "Shared with: Anthropic (Claude AI) — only the card photo you choose",
-      "Used for: returning a grade. Not used to train AI models",
-      "Not shared with advertisers or any other third parties",
-      "By tapping Get Started, you agree to share card photos for AI analysis",
+      "Sent to: Anthropic — only the card photo you choose",
+      "Used only to return your grade — not to train AI",
+      "Never shared with advertisers or other third parties",
     ],
   },
 ];

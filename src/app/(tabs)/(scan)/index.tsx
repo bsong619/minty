@@ -261,7 +261,7 @@ export default function ScanScreen() {
                       paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6,
                       backgroundColor: "rgba(11,13,14,0.85)", borderWidth: 1, borderColor: `${color}80`,
                     }}>
-                      <Text style={{ fontFamily: FONT.display, fontSize: 14, color, lineHeight: 14 }}>{c.result.overallGrade}</Text>
+                      <Text style={{ fontFamily: FONT.display, fontSize: 14, color, lineHeight: 18, paddingHorizontal: 2 }}>{c.result.overallGrade}</Text>
                     </View>
                   </View>
                   <Text numberOfLines={1} style={{ fontSize: 11, color: C.text, marginTop: 6, fontFamily: FONT.uiBold }}>{c.result.cardName}</Text>
