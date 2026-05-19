@@ -40,9 +40,10 @@ export default function ScanScreen() {
 
   useEffect(() => {
     if (!userId || !appReady) return;
-    hasSeenOnboarding().then((seen) => {
+    // Onboarding state is keyed per user — a new account on this device
+    // sees the tour again, including the AI consent step.
+    hasSeenOnboarding(userId).then((seen) => {
       if (!seen) {
-        markOnboardingSeen().catch(() => {});
         router.push("/onboarding" as any);
       }
     });
@@ -74,7 +75,7 @@ export default function ScanScreen() {
   // data shared (the card photo), and the purpose. Required before the
   // first scan; once accepted we don't re-ask.
   const ensureAiConsent = useCallback(async (): Promise<boolean> => {
-    if (await hasAcceptedAiConsent()) return true;
+    if (await hasAcceptedAiConsent(userId)) return true;
     return new Promise<boolean>((resolve) => {
       Alert.alert(
         "Share your card photo with AI?",
@@ -89,7 +90,7 @@ export default function ScanScreen() {
             text: "I agree",
             style: "default",
             onPress: async () => {
-              await markAiConsentAccepted().catch(() => {});
+              await markAiConsentAccepted(userId).catch(() => {});
               resolve(true);
             },
           },
@@ -97,7 +98,7 @@ export default function ScanScreen() {
         { cancelable: false }
       );
     });
-  }, []);
+  }, [userId]);
 
   const takePhoto = useCallback(async () => {
     if (!(await ensureAiConsent())) return;

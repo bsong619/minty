@@ -8,7 +8,7 @@ import { useAuth } from "@/components/auth-provider";
 import { AUTH_FLOW_KEY } from "@/app/_layout";
 import { supabase } from "@/lib/supabase";
 import { getScannedCards, deleteAllScannedCards } from "@/lib/card-service";
-import { getCards } from "@/lib/storage";
+import { getCards, resetOnboardingForUser } from "@/lib/storage";
 import { GradedCard } from "@/lib/types";
 import { Icon, type IconName } from "@/components/icon";
 import { C, FONT, SHADOW } from "@/lib/theme";
@@ -73,7 +73,10 @@ export default function ProfileScreen() {
       { text: "Clear", style: "destructive", onPress: async () => {
         try {
           // Never AsyncStorage.clear() — would nuke the Supabase auth session.
-          await AsyncStorage.multiRemove(["minty_history", "minty_onboarding_seen"]);
+          // Wipe history + this user's onboarding/consent flags so a fresh
+          // grading flow starts (with disclosure) on the next scan.
+          await AsyncStorage.removeItem("minty_history");
+          await resetOnboardingForUser(userId);
           if (userId) await deleteAllScannedCards(userId);
           setStats({ scans: 0, gems: 0, avg: 0 });
           Alert.alert("Done", "All scanned cards have been cleared.");
@@ -120,7 +123,8 @@ export default function ProfileScreen() {
                   await supabase.rpc("delete_user_account");
                 }
               }
-              await AsyncStorage.multiRemove(["minty_history", "minty_onboarding_seen", AUTH_FLOW_KEY]);
+              await AsyncStorage.multiRemove(["minty_history", AUTH_FLOW_KEY]);
+              await resetOnboardingForUser(userId);
               signOut().catch(() => {});
               rootRouter.replace("/login" as any);
             } catch (err: any) {
@@ -175,7 +179,7 @@ export default function ProfileScreen() {
 
       {/* General */}
       <Section title="GENERAL">
-        <Row icon="info" label="How to get the best grade" onPress={() => AsyncStorage.removeItem("minty_onboarding_seen").then(() => router.push("/onboarding" as any))} />
+        <Row icon="info" label="How to get the best grade" onPress={() => resetOnboardingForUser(userId).then(() => router.push("/onboarding" as any))} />
       </Section>
 
       {/* About + Account & Data — Delete Account surfaced at top level

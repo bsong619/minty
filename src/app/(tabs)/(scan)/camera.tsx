@@ -85,31 +85,55 @@ export default function CameraScreen() {
   return <FallbackCameraScreen />;
 }
 
+// Native (VisionKit) scanner flow with explicit front/back guidance.
+// We invoke the scanner twice — once for the front, once for the back —
+// with our own prompt screens between, because VNDocumentCameraViewController
+// has no concept of labeled steps. Better UX than one bulk session.
+type NativePhase = "intro-front" | "scanning" | "flip-prompt";
+
 function NativeScannerScreen() {
   const router = useRouter();
+  const [phase, setPhase] = useState<NativePhase>("intro-front");
+  const [frontUri, setFrontUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showManual, setShowManual] = useState(false);
-  const launchedRef = useRef(false);
+  const inFlightRef = useRef<"front" | "back" | null>(null);
 
-  const launchScanner = async () => {
+  const launchScanner = async (which: "front" | "back") => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = which;
+    setPhase("scanning");
     try {
       const result = await DocumentScanner.scanDocument({
         croppedImageQuality: 100,
-        maxNumDocuments: 2,
+        maxNumDocuments: 1,
         responseType: DocumentScannerResponseType?.ImageFilePath ?? "imageFilePath",
       });
       const cancelled = result.status === (DocumentScannerStatus?.Cancel ?? "cancel");
-      if (cancelled) { router.back(); return; }
       const imgs = result.scannedImages ?? [];
-      if (imgs.length === 0) { router.back(); return; }
-      if (imgs.length === 1) {
-        setPendingImageUri(imgs[0]);
-      } else {
-        setPendingImageUris(imgs[0], imgs[1]);
+      if (cancelled || imgs.length === 0) {
+        // User backed out of the scanner — return to the prompt for this
+        // step instead of leaving the screen, so they can try again.
+        inFlightRef.current = null;
+        setPhase(which === "front" ? "intro-front" : "flip-prompt");
+        return;
       }
-      router.replace("/(tabs)/(scan)/analyzing");
+      const uri = imgs[0];
+      inFlightRef.current = null;
+      if (which === "front") {
+        setFrontUri(uri);
+        setPhase("flip-prompt");
+      } else {
+        if (!frontUri) {
+          // Shouldn't happen, but guard against losing the front photo.
+          setPendingImageUri(uri);
+        } else {
+          setPendingImageUris(frontUri, uri);
+        }
+        router.replace("/(tabs)/(scan)/analyzing");
+      }
     } catch (e: any) {
       console.error("DocumentScanner error:", e);
+      inFlightRef.current = null;
       const msg = (e?.message ?? "").toLowerCase();
       if (msg.includes("permission") || msg.includes("denied") || msg.includes("authorized")) {
         setError("permission");
@@ -119,19 +143,11 @@ function NativeScannerScreen() {
     }
   };
 
-  useEffect(() => {
-    if (launchedRef.current) return;
-    launchedRef.current = true;
-    // The parent screen is presented as a fullScreenModal — calling
-    // scanDocument while iOS is still transitioning that modal causes the
-    // scanner's own presentation to silently fail (black screen). Delay
-    // long enough for the parent transition to settle.
-    const t = setTimeout(launchScanner, 600);
-    // Safety net: if the scanner is still nowhere to be seen after 4s,
-    // surface a manual retry button so the user can recover.
-    const manualTimer = setTimeout(() => setShowManual(true), 4000);
-    return () => { clearTimeout(t); clearTimeout(manualTimer); };
-  }, [router]);
+  const skipBack = () => {
+    if (!frontUri) return;
+    setPendingImageUri(frontUri);
+    router.replace("/(tabs)/(scan)/analyzing");
+  };
 
   if (error === "permission") {
     return (
@@ -168,24 +184,81 @@ function NativeScannerScreen() {
     );
   }
 
-  return (
-    <View style={{ flex: 1, backgroundColor: "#000", justifyContent: "center", alignItems: "center" }}>
-      {showManual && (
-        <View style={{ alignItems: "center", gap: 16, padding: 32 }}>
-          <Text style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", textAlign: "center" }}>
-            Scanner didn&apos;t open. Tap below to try again.
-          </Text>
-          <Pressable
-            onPress={() => { launchedRef.current = false; setShowManual(false); launchScanner(); }}
-            style={({ pressed }) => ({ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, backgroundColor: C.mint, opacity: pressed ? 0.85 : 1 })}
-          >
-            <Text style={{ fontFamily: FONT.uiBold, fontSize: 14, color: C.onMint, paddingRight: 2 }}>Open scanner</Text>
-          </Pressable>
-          <Pressable onPress={() => router.back()}>
-            <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", paddingVertical: 8 }}>Cancel</Text>
-          </Pressable>
+  if (phase === "scanning") {
+    // VisionKit is presenting its own modal on top of us. Black backdrop
+    // matches the scanner's appearance so the transition feels seamless.
+    return <View style={{ flex: 1, backgroundColor: "#000" }} />;
+  }
+
+  if (phase === "flip-prompt") {
+    return (
+      <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", padding: 32, gap: 18 }}>
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={12}
+          style={{ position: "absolute", top: 56, left: 20, width: 36, height: 36, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, justifyContent: "center", alignItems: "center" }}
+        >
+          <Icon name="close" size={18} color={C.text} />
+        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.mint }} />
+          <Text style={{ fontFamily: FONT.monoBold, fontSize: 11, color: C.textTertiary, letterSpacing: 1.5 }}>STEP 2 OF 2</Text>
         </View>
-      )}
+        <Text style={{ fontFamily: FONT.display, fontSize: 32, color: C.text, textAlign: "center", lineHeight: 38, letterSpacing: -0.5 }}>
+          Now flip the card{"\n"}for the back
+        </Text>
+        <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: "center", lineHeight: 20, maxWidth: 320 }}>
+          A photo of the back helps catch edge whitening and centering issues graders look for.
+        </Text>
+        <Pressable
+          onPress={() => launchScanner("back")}
+          style={({ pressed }) => ({
+            marginTop: 12, paddingVertical: 16, paddingHorizontal: 28, borderRadius: 14, backgroundColor: C.mint,
+            opacity: pressed ? 0.85 : 1,
+            flexDirection: "row", alignItems: "center", gap: 10,
+          })}
+        >
+          <Icon name="camera" size={16} color={C.onMint} strokeWidth={2.5} />
+          <Text style={{ fontFamily: FONT.uiBold, fontSize: 15, color: C.onMint, paddingRight: 2 }}>Take back photo</Text>
+        </Pressable>
+        <Pressable onPress={skipBack} hitSlop={8}>
+          <Text style={{ fontSize: 13, color: C.textTertiary, paddingVertical: 10 }}>Skip — grade with front only</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // phase === "intro-front"
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", padding: 32, gap: 18 }}>
+      <Pressable
+        onPress={() => router.back()}
+        hitSlop={12}
+        style={{ position: "absolute", top: 56, left: 20, width: 36, height: 36, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, justifyContent: "center", alignItems: "center" }}
+      >
+        <Icon name="close" size={18} color={C.text} />
+      </Pressable>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.mint }} />
+        <Text style={{ fontFamily: FONT.monoBold, fontSize: 11, color: C.textTertiary, letterSpacing: 1.5 }}>STEP 1 OF 2</Text>
+      </View>
+      <Text style={{ fontFamily: FONT.display, fontSize: 32, color: C.text, textAlign: "center", lineHeight: 38, letterSpacing: -0.5 }}>
+        Take a photo{"\n"}of the front
+      </Text>
+      <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: "center", lineHeight: 20, maxWidth: 320 }}>
+        Place the card on a dark, flat surface. We&apos;ll auto-detect the edges and crop it for you.
+      </Text>
+      <Pressable
+        onPress={() => launchScanner("front")}
+        style={({ pressed }) => ({
+          marginTop: 12, paddingVertical: 16, paddingHorizontal: 28, borderRadius: 14, backgroundColor: C.mint,
+          opacity: pressed ? 0.85 : 1,
+          flexDirection: "row", alignItems: "center", gap: 10,
+        })}
+      >
+        <Icon name="camera" size={16} color={C.onMint} strokeWidth={2.5} />
+        <Text style={{ fontFamily: FONT.uiBold, fontSize: 15, color: C.onMint, paddingRight: 2 }}>Open camera</Text>
+      </Pressable>
     </View>
   );
 }

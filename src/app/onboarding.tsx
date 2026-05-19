@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { markOnboardingSeen, markAiConsentAccepted } from "@/lib/storage";
+import { useAuth } from "@/components/auth-provider";
 import { C, SHADOW } from "@/lib/theme";
 
 const STEPS = [
@@ -65,6 +66,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { userId } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -82,9 +84,10 @@ export default function OnboardingScreen() {
     } else {
       // Final step is the AI consent step — tapping Get Started records
       // affirmative consent (Apple Guideline 5.1.2) in addition to marking
-      // onboarding as seen.
-      await markOnboardingSeen();
-      await markAiConsentAccepted();
+      // onboarding as seen. Both keys are scoped to the current userId so
+      // a different account on the same device gets the disclosure fresh.
+      await markOnboardingSeen(userId);
+      await markAiConsentAccepted(userId);
       router.back();
     }
   };
@@ -93,7 +96,7 @@ export default function OnboardingScreen() {
     // Skip only dismisses the tour — it does NOT grant AI consent. The first
     // scan attempt will surface a just-in-time consent dialog before any
     // photo leaves the device.
-    await markOnboardingSeen();
+    await markOnboardingSeen(userId);
     router.back();
   };
 
