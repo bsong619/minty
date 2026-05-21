@@ -144,9 +144,10 @@ export default function ProfileScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 24, paddingTop: 12 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 24, paddingTop: 12, alignItems: "center" }}
       showsVerticalScrollIndicator={false}
     >
+      <View style={{ width: "100%", maxWidth: 560, gap: 16 }}>
       {/* Profile header — combined identity + lifetime scan count */}
       <View style={{
         backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
@@ -213,6 +214,7 @@ export default function ProfileScreen() {
       <Text style={{ fontSize: 11, color: C.textDisabled, textAlign: "center", lineHeight: 16, paddingHorizontal: 16, marginTop: 4 }}>
         v1.0.0 · Minty is not affiliated with any professional grading service.{"\n"}Grade predictions are AI estimates only.
       </Text>
+      </View>
     </ScrollView>
   );
 }

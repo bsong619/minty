@@ -21,8 +21,9 @@ export default function TermsScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: 24, gap: 22, paddingBottom: 120 + insets.bottom }}
+        contentContainerStyle={{ padding: 24, paddingBottom: 120 + insets.bottom, alignItems: "center" }}
       >
+        <View style={{ width: "100%", maxWidth: 640, gap: 22 }}>
         <View style={{ gap: 6, paddingTop: 8 }}>
           <Text style={{ fontSize: 26, fontWeight: "800", color: C.text, letterSpacing: -0.5 }}>Terms of Service</Text>
           <Text style={{ fontSize: 13, color: C.textTertiary }}>Last updated: March 2026</Text>
@@ -87,15 +88,17 @@ export default function TermsScreen() {
         <Section title="15. Contact">
           If you have questions about these Terms, contact us at song.brenden@gmail.com.
         </Section>
+        </View>
       </ScrollView>
 
-      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, backgroundColor: C.bg, borderTopWidth: 0.5, borderTopColor: C.borderSubtle }}>
+      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 + insets.bottom, backgroundColor: C.bg, borderTopWidth: 0.5, borderTopColor: C.borderSubtle, alignItems: "center" }}>
         <Pressable
           onPress={() => router.back()}
           style={({ pressed }) => ({
             padding: 16, borderRadius: 16, borderCurve: "continuous",
             backgroundColor: C.red, alignItems: "center",
             opacity: pressed ? 0.85 : 1,
+            width: "100%", maxWidth: 560,
           })}
         >
           <Text style={{ fontSize: 16, fontWeight: "600", color: "white" }}>Done</Text>

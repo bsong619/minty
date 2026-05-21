@@ -122,9 +122,10 @@ export default function ScanScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingBottom: 24, paddingTop: 6 }}
+      contentContainerStyle={{ paddingBottom: 24, paddingTop: 6, alignItems: "center" }}
       showsVerticalScrollIndicator={false}
     >
+      <View style={{ width: "100%", maxWidth: 640 }}>
       {/* Header */}
       <View style={{ paddingHorizontal: HORIZ, paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexShrink: 1, minWidth: 0 }}>
@@ -288,6 +289,7 @@ export default function ScanScreen() {
           </Text>
         </View>
       )}
+      </View>
     </ScrollView>
   );
 }

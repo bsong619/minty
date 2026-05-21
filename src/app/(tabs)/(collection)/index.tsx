@@ -16,6 +16,7 @@ import { getGradeColor } from "@/lib/grade-colors";
 const PADDING = 20;
 const GAP = 8;
 const COLUMNS = 3;
+const MAX_CONTENT_WIDTH = 640;
 
 const FILTERS = ["All", "Favorites"] as const;
 type Filter = typeof FILTERS[number];
@@ -24,7 +25,8 @@ export default function VaultScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const { width: screenWidth } = useWindowDimensions();
-  const cardWidth = (screenWidth - PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
+  const effectiveWidth = Math.min(screenWidth, MAX_CONTENT_WIDTH);
+  const cardWidth = (effectiveWidth - PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS;
   const cardHeight = Math.round(cardWidth / 0.72);
   const insets = useSafeAreaInsets();
   const [cards, setCards] = useState<GradedCard[]>([]);
@@ -68,10 +70,11 @@ export default function VaultScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingBottom: 24, paddingTop: 6 }}
+      contentContainerStyle={{ paddingBottom: 24, paddingTop: 6, alignItems: "center" }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.mint} />}
       showsVerticalScrollIndicator={false}
     >
+      <View style={{ width: "100%", maxWidth: MAX_CONTENT_WIDTH }}>
       {/* Header */}
       <View style={{ paddingHorizontal: PADDING, paddingTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
         <View style={{ flexShrink: 1 }}>
@@ -200,6 +203,7 @@ export default function VaultScreen() {
           })}
         </View>
       )}
+      </View>
     </ScrollView>
   );
 }

@@ -55,8 +55,9 @@ export default function DetailsScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 40 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: 40, alignItems: "center" }}
     >
+      <View style={{ width: "100%", maxWidth: 560, gap: 16 }}>
       {/* Hero */}
       <View style={{ alignItems: "center", gap: 16, paddingVertical: 8 }}>
         <Image
@@ -142,6 +143,7 @@ export default function DetailsScreen() {
           <Text style={{ fontSize: 18 }}>🗑️</Text>
           <Text style={{ fontSize: 15, fontWeight: "600", color: "#FF3B30" }}>Delete</Text>
         </Pressable>
+      </View>
       </View>
     </ScrollView>
   );

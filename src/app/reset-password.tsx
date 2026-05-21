@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { updatePassword } from "@/lib/supabase";
+import { ResponsiveContainer } from "@/components/responsive-container";
 import { C, SHADOW } from "@/lib/theme";
 
 export default function ResetPasswordScreen() {
@@ -39,20 +40,22 @@ export default function ResetPasswordScreen() {
 
   if (done) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", padding: 32, gap: 20 }}>
-        <View style={{ width: 72, height: 72, borderRadius: 18, borderCurve: "continuous", backgroundColor: C.redFaint, borderWidth: 1, borderColor: C.borderGlow, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontSize: 36 }}>✅</Text>
+      <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", padding: 32 }}>
+        <View style={{ width: "100%", maxWidth: 560, alignItems: "center", gap: 20 }}>
+          <View style={{ width: 72, height: 72, borderRadius: 18, borderCurve: "continuous", backgroundColor: C.redFaint, borderWidth: 1, borderColor: C.borderGlow, justifyContent: "center", alignItems: "center" }}>
+            <Text style={{ fontSize: 36 }}>✅</Text>
+          </View>
+          <Text style={{ fontSize: 24, fontWeight: "700", color: C.text, textAlign: "center" }}>Password updated</Text>
+          <Text style={{ fontSize: 15, color: C.textSecondary, textAlign: "center", lineHeight: 22 }}>
+            Your password has been changed. Sign in with your new password.
+          </Text>
+          <Pressable
+            onPress={() => router.replace("/login")}
+            style={{ marginTop: 8, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 14, borderCurve: "continuous", backgroundColor: C.red, boxShadow: SHADOW.glow } as any}
+          >
+            <Text style={{ fontSize: 15, fontWeight: "600", color: "white" }}>Go to Sign In</Text>
+          </Pressable>
         </View>
-        <Text style={{ fontSize: 24, fontWeight: "700", color: C.text, textAlign: "center" }}>Password updated</Text>
-        <Text style={{ fontSize: 15, color: C.textSecondary, textAlign: "center", lineHeight: 22 }}>
-          Your password has been changed. Sign in with your new password.
-        </Text>
-        <Pressable
-          onPress={() => router.replace("/login")}
-          style={{ marginTop: 8, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 14, borderCurve: "continuous", backgroundColor: C.red, boxShadow: SHADOW.glow } as any}
-        >
-          <Text style={{ fontSize: 15, fontWeight: "600", color: "white" }}>Go to Sign In</Text>
-        </Pressable>
       </View>
     );
   }
@@ -65,6 +68,7 @@ export default function ResetPasswordScreen() {
       >
         <View pointerEvents="none" style={{ position: "absolute", top: -60, left: "50%", marginLeft: -150, width: 300, height: 300, borderRadius: 150, backgroundColor: "rgba(255,68,68,0.04)" }} />
 
+        <ResponsiveContainer>
         <View style={{ marginTop: 80, gap: 8, marginBottom: 32 }}>
           <Text style={{ fontSize: 28, fontWeight: "700", color: C.text, letterSpacing: -0.5 }}>Set new password</Text>
           <Text style={{ fontSize: 15, color: C.textSecondary, lineHeight: 22 }}>
@@ -129,6 +133,7 @@ export default function ResetPasswordScreen() {
             </Pressable>
           </Animated.View>
         </View>
+        </ResponsiveContainer>
       </ScrollView>
     </KeyboardAvoidingView>
   );

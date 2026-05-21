@@ -128,15 +128,17 @@ export default function AnalyzingScreen() {
 
   if (errorMsg) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", padding: 32, gap: 20 }}>
-        <Text style={{ fontSize: 32 }}>⚠️</Text>
-        <Text style={{ fontSize: 18, fontWeight: "700", color: C.text, textAlign: "center" }}>Something went wrong</Text>
-        <View style={{ backgroundColor: C.surface, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: C.border, width: "100%" }}>
-          <Text selectable style={{ fontSize: 13, color: "#FF6B6B", lineHeight: 20 }}>{errorMsg}</Text>
-        </View>
-        <View style={{ flexDirection: "row", gap: 16, marginTop: 8 }}>
-          <Text onPress={() => router.back()} style={{ fontSize: 16, color: C.textSecondary, fontWeight: "600" }}>← Go Back</Text>
-          <Text onPress={() => setRetryCount((c) => c + 1)} style={{ fontSize: 16, color: C.red, fontWeight: "600" }}>Try Again →</Text>
+      <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", padding: 32 }}>
+        <View style={{ width: "100%", maxWidth: 480, alignItems: "center", gap: 20 }}>
+          <Text style={{ fontSize: 32 }}>⚠️</Text>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: C.text, textAlign: "center" }}>Something went wrong</Text>
+          <View style={{ backgroundColor: C.surface, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: C.border, width: "100%" }}>
+            <Text selectable style={{ fontSize: 13, color: "#FF6B6B", lineHeight: 20 }}>{errorMsg}</Text>
+          </View>
+          <View style={{ flexDirection: "row", gap: 16, marginTop: 8 }}>
+            <Text onPress={() => router.back()} style={{ fontSize: 16, color: C.textSecondary, fontWeight: "600" }}>← Go Back</Text>
+            <Text onPress={() => setRetryCount((c) => c + 1)} style={{ fontSize: 16, color: C.red, fontWeight: "600" }}>Try Again →</Text>
+          </View>
         </View>
       </View>
     );

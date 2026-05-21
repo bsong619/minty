@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { resetPasswordForEmail } from "@/lib/supabase";
+import { ResponsiveContainer } from "@/components/responsive-container";
 import { C, SHADOW } from "@/lib/theme";
 
 export default function ForgotPasswordScreen() {
@@ -56,6 +57,7 @@ export default function ForgotPasswordScreen() {
       >
         <View pointerEvents="none" style={{ position: "absolute", top: -60, left: "50%", marginLeft: -150, width: 300, height: 300, borderRadius: 150, backgroundColor: "rgba(255,68,68,0.04)" }} />
 
+        <ResponsiveContainer>
         {/* Back button */}
         <Pressable onPress={() => router.back()} style={{ marginTop: 56, marginBottom: 32, alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4 }}>
           <Text style={{ fontSize: 18, color: C.red, lineHeight: 22 }}>‹</Text>
@@ -129,6 +131,7 @@ export default function ForgotPasswordScreen() {
             </Animated.View>
           </View>
         )}
+        </ResponsiveContainer>
       </ScrollView>
     </KeyboardAvoidingView>
   );

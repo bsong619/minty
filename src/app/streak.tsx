@@ -22,9 +22,10 @@ export default function StreakScreen() {
         style={{ position: "absolute", top: 0, left: 0, right: 0, height: 320 }}
       />
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32, paddingHorizontal: 24 }}
+        contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32, paddingHorizontal: 24, alignItems: "center" }}
         showsVerticalScrollIndicator={false}
       >
+        <View style={{ width: "100%", maxWidth: 480 }}>
         {/* Top bar */}
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <Pressable onPress={() => router.back()} hitSlop={8}>
@@ -104,6 +105,7 @@ export default function StreakScreen() {
         >
           <Text style={{ fontFamily: FONT.uiBold, fontSize: 14, color: C.onMint }}>Scan today&apos;s card</Text>
         </Pressable>
+        </View>
       </ScrollView>
     </View>
   );

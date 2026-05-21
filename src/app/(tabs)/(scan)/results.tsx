@@ -111,9 +111,10 @@ export default function ResultsScreen() {
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingBottom: 40 }}
+      contentContainerStyle={{ paddingBottom: 40, alignItems: "center" }}
       showsVerticalScrollIndicator={false}
     >
+      <View style={{ width: "100%", maxWidth: 640 }}>
       {/* Header */}
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingBottom: 0 }}>
         <Pressable onPress={() => router.back()}><Icon name="back" size={20} color={C.text} /></Pressable>
@@ -303,6 +304,7 @@ export default function ResultsScreen() {
       <Text selectable style={{ fontSize: 11, color: C.textTertiary, textAlign: "center", lineHeight: 16, paddingHorizontal: 24, paddingTop: 16 }}>
         AI estimate only — not an official grade. Results may differ from professional grading services. Don&apos;t rely on this for purchase or sale decisions.
       </Text>
+      </View>
     </ScrollView>
   );
 }

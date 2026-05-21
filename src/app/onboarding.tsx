@@ -152,77 +152,85 @@ export default function OnboardingScreen() {
               paddingHorizontal: 32,
               justifyContent: "center",
               alignItems: "center",
-              gap: 24,
             }}
           >
             <View
               style={{
-                width: 100,
-                height: 100,
-                borderRadius: 50,
-                backgroundColor: C.goldFaint,
-                justifyContent: "center",
+                width: "100%",
+                maxWidth: 560,
                 alignItems: "center",
+                gap: 24,
               }}
             >
-              <Image
-                source={step.icon}
-                style={{ width: 44, height: 44, tintColor: "#3DD68C" as any }}
-              />
-            </View>
-            <Text
-              style={{
-                fontSize: 28,
-                fontWeight: "800",
-                color: C.text,
-                textAlign: "center",
-              }}
-            >
-              {step.title}
-            </Text>
-            <Text
-              style={{
-                fontSize: 16,
-                color: C.textSecondary,
-                textAlign: "center",
-                lineHeight: 24,
-              }}
-            >
-              {step.description}
-            </Text>
-            <View style={{ gap: 12, width: "100%" }}>
-              {step.tips.map((tip, i) => (
-                <View
-                  key={i}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: 14,
-                    borderRadius: 14,
-                    borderCurve: "continuous",
-                    backgroundColor: C.surface,
-                  }}
-                >
-                  <Image
-                    source="sf:checkmark.circle.fill"
+              <View
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  backgroundColor: C.goldFaint,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Image
+                  source={step.icon}
+                  style={{ width: 44, height: 44, tintColor: "#3DD68C" as any }}
+                />
+              </View>
+              <Text
+                style={{
+                  fontSize: 28,
+                  fontWeight: "800",
+                  color: C.text,
+                  textAlign: "center",
+                }}
+              >
+                {step.title}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: C.textSecondary,
+                  textAlign: "center",
+                  lineHeight: 24,
+                }}
+              >
+                {step.description}
+              </Text>
+              <View style={{ gap: 12, width: "100%" }}>
+                {step.tips.map((tip, i) => (
+                  <View
+                    key={i}
                     style={{
-                      width: 20,
-                      height: 20,
-                      tintColor: C.gold,
-                    }}
-                  />
-                  <Text
-                    style={{
-                      fontSize: 15,
-                      color: C.text,
-                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: 14,
+                      borderRadius: 14,
+                      borderCurve: "continuous",
+                      backgroundColor: C.surface,
                     }}
                   >
-                    {tip}
-                  </Text>
-                </View>
-              ))}
+                    <Image
+                      source="sf:checkmark.circle.fill"
+                      style={{
+                        width: 20,
+                        height: 20,
+                        tintColor: C.gold,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        color: C.text,
+                        flex: 1,
+                      }}
+                    >
+                      {tip}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
           </View>
         ))}
